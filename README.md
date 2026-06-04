@@ -36,9 +36,9 @@ npm run test:e2e
 
 ## 公開設定
 
-Vercel では `VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`、`VITE_VAPID_PUBLIC_KEY` を設定します。
+Vercel では `VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`、`VITE_API_BASE_URL`、`VITE_VAPID_PUBLIC_KEY` を設定します。
 
-Vercel Functions では `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`CRON_SECRET`、`APP_BASE_URL` も使います。
+Vercel Functions では `APP_BASE_URL`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT`、`CRON_SECRET` も使います。
 
 メール/LINEの自動送信を使う場合は任意で追加します。
 
@@ -48,3 +48,5 @@ Supabase には `supabase/migrations/` のSQLを適用します。
 
 データは `localStorage` にも保存し、Supabase設定がある環境では端末ごとの同期キーでクラウド保存します。期限データは `src/data/foodGuides.ts` に分離しています。
 メール送信はResend、LINE送信はLINE Messaging APIのトークンが設定された場合に実行されます。未設定でもWeb PushとWebhook通知は動作します。
+
+運用設定、実機確認、ユーザー側で必要な外部サービス設定は `docs/OPERATIONS.md` にまとめています。
