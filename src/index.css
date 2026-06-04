@@ -1,0 +1,86 @@
+:root {
+  --rice-white: oklch(98.8% 0.006 101);
+  --rice-paper: oklch(96.8% 0.017 101);
+  --rice-yellow: oklch(93.6% 0.072 95);
+  --rice-yellow-soft: oklch(97.4% 0.039 98);
+  --leaf-950: oklch(27% 0.047 151);
+  --leaf-800: oklch(38% 0.076 149);
+  --leaf-700: oklch(46% 0.095 146);
+  --leaf-500: oklch(59% 0.118 138);
+  --leaf-100: oklch(93.2% 0.044 131);
+  --leaf-50: oklch(97.2% 0.024 132);
+  --karashi: oklch(84% 0.14 88);
+  --miso: oklch(57% 0.088 62);
+  --shichimi: oklch(53% 0.142 38);
+  --shoyu: oklch(35% 0.042 58);
+  --accent: var(--leaf-700);
+  --bg: oklch(97.1% 0.032 101);
+  --field: var(--rice-white);
+  --ink: var(--leaf-950);
+  --line: oklch(86% 0.022 98);
+  --matcha: var(--leaf-700);
+  --muted: oklch(43% 0.028 84);
+  --rice: var(--rice-white);
+  --rice-deep: var(--rice-yellow);
+  --shadow-card: 0 8px 20px oklch(41% 0.035 96 / 0.055);
+  --shadow-control: 0 7px 16px oklch(38% 0.065 145 / 0.1);
+  --surface: var(--rice-white);
+  --surface-elevated: oklch(99.1% 0.008 101);
+  --text: oklch(35% 0.03 76);
+  --text-strong: oklch(26% 0.036 76);
+  --warning: var(--miso);
+  --font-sans: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', YuGothic, Meiryo,
+    -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', YuGothic, Meiryo,
+    -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-serif: var(--font-display);
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-synthesis: none;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0;
+  font-feature-settings: 'palt' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  -webkit-tap-highlight-color: oklch(59% 0.118 138 / 0.18);
+  background:
+    linear-gradient(180deg, oklch(96.8% 0.045 101), oklch(94.2% 0.054 103)),
+    var(--bg);
+  margin: 0;
+  min-width: 320px;
+}
+
+body::before {
+  background-image:
+    linear-gradient(90deg, oklch(70% 0.035 102 / 0.12) 1px, transparent 1px),
+    linear-gradient(180deg, oklch(70% 0.035 102 / 0.1) 1px, transparent 1px);
+  background-size: 18px 18px;
+  content: '';
+  inset: 0;
+  opacity: 0.38;
+  pointer-events: none;
+  position: fixed;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+a,
+input,
+select,
+summary {
+  touch-action: manipulation;
+}

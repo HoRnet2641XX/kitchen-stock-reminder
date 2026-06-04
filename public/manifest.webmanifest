@@ -1,0 +1,16 @@
+{
+  "name": "食材期限帳",
+  "short_name": "食材期限帳",
+  "description": "自炊向けの食材期限、在庫、買い物リスト管理アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6f2",
+  "theme_color": "#237a66",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
