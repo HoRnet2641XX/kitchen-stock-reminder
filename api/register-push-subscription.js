@@ -2,6 +2,7 @@ import {
   getSupabaseAdmin,
   handleError,
   handleOptions,
+  isMissingRelationError,
   readJson,
   requireDeviceSecret,
   sendJson,
@@ -22,9 +23,28 @@ export default async function handler(req, res) {
     const admin = getSupabaseAdmin()
     await verifyProfile(admin, deviceId, secretHash)
 
+    const { data: linkedLine, error: linkedLineError } = await admin
+      .from('kitchen_line_links')
+      .select('line_user_id')
+      .eq('device_id', deviceId)
+      .eq('secret_hash', secretHash)
+      .eq('status', 'linked')
+      .not('line_user_id', 'is', null)
+      .order('linked_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (linkedLineError && !isMissingRelationError(linkedLineError, 'kitchen_line_links')) throw linkedLineError
+
     const lineValue = String(body.lineMemo || '').trim()
-    const webhookUrl = /^https:\/\//.test(lineValue) ? lineValue : String(body.webhookUrl || '').trim()
-    const lineTarget = /^https:\/\//.test(lineValue) ? '' : lineValue
+    const explicitWebhookUrl = String(body.webhookUrl || '').trim()
+    const webhookUrl = /^https:\/\//.test(lineValue)
+      ? lineValue
+      : /^https:\/\//.test(explicitWebhookUrl)
+        ? explicitWebhookUrl
+        : ''
+    const manualLineTarget = /^https:\/\//.test(lineValue) ? '' : lineValue
+    const lineTarget = linkedLine && !linkedLineError ? linkedLine.line_user_id || manualLineTarget : manualLineTarget
 
     const { error } = await admin.from('kitchen_push_subscriptions').upsert(
       {
@@ -48,6 +68,7 @@ export default async function handler(req, res) {
     sendJson(res, 200, {
       emailConfigured: Boolean(process.env.RESEND_API_KEY),
       lineConfigured: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
+      lineLinked: Boolean(linkedLine && !linkedLineError && linkedLine.line_user_id),
       ok: true,
       pushEnabled: true,
       webhookEnabled: Boolean(webhookUrl),

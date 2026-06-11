@@ -22,6 +22,7 @@
 - OCRによる包装期限日の読み取り
 - Supabaseクラウド同期、クラウド削除、メールリンクによるアカウント紐付け
 - Web Push購読、Supabase cronによるサーバー側リマインド
+- LINE公式アカウントへの連携コード送信によるLINE通知先の自動保存
 - プライバシー/利用条件のアプリ内表示、クライアントエラー記録
 
 ## 開発
@@ -42,11 +43,12 @@ Vercel Functions では `APP_BASE_URL`、`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE
 
 メール/LINEの自動送信を使う場合は任意で追加します。
 
-`RESEND_API_KEY`、`REMINDER_EMAIL_FROM`、`LINE_CHANNEL_ACCESS_TOKEN` を設定すると、メール/LINE通知も有効になります。
+`RESEND_API_KEY`、`REMINDER_EMAIL_FROM`、`LINE_CHANNEL_ACCESS_TOKEN`、`LINE_CHANNEL_SECRET` を設定すると、メール/LINE通知も有効になります。
+LINE公式アカウントを開く導線には `VITE_LINE_OFFICIAL_ACCOUNT_URL` も設定します。
 
 Supabase には `supabase/migrations/` のSQLを適用します。
 
 データは `localStorage` にも保存し、Supabase設定がある環境では端末ごとの同期キーでクラウド保存します。期限データは `src/data/foodGuides.ts` に分離しています。
-メール送信はResend、LINE送信はLINE Messaging APIのトークンが設定された場合に実行されます。未設定でもWeb PushとWebhook通知は動作します。
+メール送信はResend、LINE送信はLINE Messaging APIのトークンとWebhook署名Secretが設定された場合に実行されます。未設定でもWeb PushとWebhook通知は動作します。
 
 運用設定、実機確認、ユーザー側で必要な外部サービス設定は `docs/OPERATIONS.md` にまとめています。

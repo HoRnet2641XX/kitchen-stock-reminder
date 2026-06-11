@@ -29,10 +29,12 @@ test('買い物リストを操作できる', async ({ page }) => {
 test('在庫画面で通知設定を開ける', async ({ page }) => {
   await page.getByRole('button', { name: /^在庫 \d+$/ }).click()
   const drawer = page.locator('details.support-drawer')
-  await drawer.locator('summary').click()
+  await drawer.locator(':scope > summary').click()
 
   await expect(drawer).toHaveAttribute('open', '')
   await expect(drawer.getByText('登録前提')).toBeVisible()
   await expect(drawer.getByRole('button', { name: 'Push登録' })).toBeVisible()
   await expect(drawer.getByRole('button', { name: 'サーバー確認' })).toBeVisible()
+  await expect(drawer.getByText('LINE通知', { exact: true })).toBeVisible()
+  await expect(drawer.getByRole('button', { name: 'コード発行' })).toBeVisible()
 })

@@ -1,4 +1,4 @@
-import { type ChangeEvent, type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type ChangeEvent, type CSSProperties, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import {
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   Home,
   Link,
   Mail,
+  MessageCircle,
   Mic,
   PackagePlus,
   Plus,
@@ -161,6 +162,21 @@ type ReminderSettings = {
   lastSentDate?: string
 }
 
+type LineLinkCode = {
+  code: string
+  expiresAt: string
+  lineOfficialAccountUrl?: string
+}
+
+type LineLinkStatusResponse = {
+  code?: string
+  expiresAt?: string
+  lineDisplayName?: string
+  lineLinked: boolean
+  linkedAt?: string
+  status: 'none' | 'pending' | 'linked' | 'expired'
+}
+
 type ShoppingItem = {
   id: string
   name: string
@@ -214,6 +230,7 @@ const supabasePublishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? ''
 const appApiBaseUrl = (import.meta.env.VITE_API_BASE_URL?.trim() ?? '').replace(/\/$/, '')
 const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim() ?? ''
+const lineOfficialAccountUrl = import.meta.env.VITE_LINE_OFFICIAL_ACCOUNT_URL?.trim() ?? ''
 const supabaseClient =
   supabaseUrl && supabasePublishableKey
     ? createClient(supabaseUrl, supabasePublishableKey, {
@@ -568,6 +585,9 @@ function getPushFailureMessage(error: unknown) {
   if (message.includes('Supabase admin environment')) {
     return 'サーバー側のSupabase設定が未完了です'
   }
+  if (message.includes('kitchen_line_links') || message.includes('LINE linking')) {
+    return 'SupabaseのLINE連携テーブルが未適用です。migrationを適用してください'
+  }
   if (message.includes('API 404')) {
     return 'ローカルのAPI向き先が未設定です'
   }
@@ -641,6 +661,8 @@ function readReminderSettings() {
     const stored = window.localStorage.getItem(reminderStorageKey)
     if (!stored) return createDefaultReminderSettings()
     const parsed = JSON.parse(stored) as Partial<ReminderSettings>
+    const storedLineMemo = String(parsed.lineMemo || '').trim()
+    const storedWebhookUrl = String(parsed.webhookUrl || '').trim()
     return {
       ...createDefaultReminderSettings(),
       ...parsed,
@@ -648,7 +670,9 @@ function readReminderSettings() {
       browser: parsed.browser !== false,
       serverPush: Boolean(parsed.serverPush),
       dailyTime: parsed.dailyTime && /^\d{2}:\d{2}$/.test(parsed.dailyTime) ? parsed.dailyTime : '08:00',
+      lineMemo: '',
       timezone: parsed.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Tokyo',
+      webhookUrl: storedWebhookUrl || (storedLineMemo.startsWith('https://') ? storedLineMemo : ''),
     }
   } catch {
     window.localStorage.removeItem(reminderStorageKey)
@@ -736,6 +760,18 @@ function formatDate(value: string | null) {
   if (!value) return '未設定'
   const [year, month, day] = value.split('-')
   return `${year}/${month}/${day}`
+}
+
+function formatDateTime(value: string | undefined) {
+  if (!value) return '未設定'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '未設定'
+  return date.toLocaleString('ja-JP', {
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: 'numeric',
+  })
 }
 
 function formatDaysLeft(daysLeft: number | null) {
@@ -953,6 +989,11 @@ function App() {
   const [notice, setNotice] = useState('')
   const [pushActionStatus, setPushActionStatus] = useState('')
   const [pushActionBusy, setPushActionBusy] = useState<'register' | 'server' | null>(null)
+  const [lineLinkBusy, setLineLinkBusy] = useState<'create' | 'check' | null>(null)
+  const [lineLinkCode, setLineLinkCode] = useState<LineLinkCode | null>(null)
+  const [lineLinkStatus, setLineLinkStatus] = useState('')
+  const [lineLinked, setLineLinked] = useState(false)
+  const [lineDisplayName, setLineDisplayName] = useState('')
   const [voiceState, setVoiceState] = useState('音声入力')
   const [ocrState, setOcrState] = useState('期限OCR')
   const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(readReminderSettings)
@@ -1263,6 +1304,102 @@ function App() {
   const secondaryActionView: AppView = shoppingTodoCount > 0 ? 'shopping' : 'inventory'
   const secondaryActionLabel = shoppingTodoCount > 0 ? '買い物を見る' : '在庫を見る'
   const tourStepData = tourSteps[tourStep] ?? tourSteps[0]
+  const activeLineOfficialAccountUrl = lineLinkCode?.lineOfficialAccountUrl || lineOfficialAccountUrl
+  const lineLinkLabel = lineLinked
+    ? lineDisplayName
+      ? `${lineDisplayName} と連携済み`
+      : '連携済み'
+    : lineLinkCode
+      ? 'コード発行済み'
+      : '未連携'
+
+  const refreshLineLinkStatus = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (localDevApiMissing) {
+        if (!silent) setLineLinkStatus('ローカルのAPI向き先が未設定です')
+        return null
+      }
+      if (!supabaseClient) {
+        if (!silent) setLineLinkStatus('LINE連携にはクラウド同期設定が必要です')
+        return null
+      }
+      if (cloudSyncPaused) {
+        if (!silent) setLineLinkStatus('クラウド同期を再開してからLINE連携してください')
+        return null
+      }
+
+      if (!silent) setLineLinkBusy('check')
+      try {
+        const result = await callAppApi<LineLinkStatusResponse>('/api/line-link-status', {
+          deviceId: cloudSyncCredentials.deviceId,
+          secret: cloudSyncCredentials.secret,
+        })
+
+        if (result.code && result.expiresAt) {
+          setLineLinkCode((current) => ({
+            code: result.code || current?.code || '',
+            expiresAt: result.expiresAt || current?.expiresAt || '',
+            lineOfficialAccountUrl: current?.lineOfficialAccountUrl || lineOfficialAccountUrl,
+          }))
+        }
+
+        setLineLinked(result.lineLinked)
+        setLineDisplayName(result.lineDisplayName || '')
+
+        if (result.lineLinked && result.status === 'pending') {
+          if (!silent) {
+            setLineLinkStatus('LINE通知は連携済みです。別のLINEに替える場合は、このコードを送信してください')
+          }
+        } else if (result.lineLinked) {
+          setLineLinkStatus(
+            result.lineDisplayName
+              ? `${result.lineDisplayName} と連携しました`
+              : 'LINE通知の連携が完了しました',
+          )
+        } else if (result.status === 'pending' && !silent) {
+          setLineLinkStatus('LINE公式にコードを送信すると、ここが連携済みに変わります')
+        } else if (result.status === 'expired') {
+          setLineLinkStatus('連携コードの期限が切れました。新しいコードを発行してください')
+        } else if (!silent) {
+          setLineLinkStatus('まだLINE連携はありません。先に連携コードを作ってください')
+        }
+
+        return result
+      } catch (error) {
+        if (!silent) setLineLinkStatus(`LINE連携の確認に失敗: ${getPushFailureMessage(error)}`)
+        return null
+      } finally {
+        if (!silent) setLineLinkBusy(null)
+      }
+    },
+    [cloudSyncCredentials.deviceId, cloudSyncCredentials.secret, cloudSyncPaused, localDevApiMissing],
+  )
+
+  useEffect(() => {
+    if (!cloudSyncReady) return
+    const timeoutId = window.setTimeout(() => {
+      void refreshLineLinkStatus({ silent: true })
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [cloudSyncReady, refreshLineLinkStatus])
+
+  useEffect(() => {
+    if (!lineLinkCode || lineLinked) return
+
+    const expiresAt = new Date(lineLinkCode.expiresAt).getTime()
+    if (expiresAt <= Date.now()) return
+
+    const intervalId = window.setInterval(() => {
+      if (new Date(lineLinkCode.expiresAt).getTime() <= Date.now()) {
+        setLineLinkStatus('連携コードの期限が切れました。新しいコードを発行してください')
+        window.clearInterval(intervalId)
+        return
+      }
+      void refreshLineLinkStatus({ silent: true })
+    }, 4000)
+
+    return () => window.clearInterval(intervalId)
+  }, [lineLinkCode, lineLinked, refreshLineLinkStatus])
 
   function switchView(view: AppView) {
     setActiveView(view)
@@ -1713,6 +1850,48 @@ function App() {
     setCloudSyncStatus(`クラウド同期済み ${nowTime()}`)
   }
 
+  async function createLineLinkCodeAction() {
+    if (lineLinkBusy) return
+    if (localDevApiMissing) {
+      setLineLinkStatus('ローカルのAPI向き先が未設定です')
+      return
+    }
+    if (!supabaseClient) {
+      setLineLinkStatus('LINE連携にはクラウド同期設定が必要です')
+      return
+    }
+    if (cloudSyncPaused) {
+      setLineLinkStatus('クラウド同期を再開してからLINE連携してください')
+      return
+    }
+
+    try {
+      setLineLinkBusy('create')
+      setLineLinkStatus('連携コードを発行しています')
+      await syncCloudStateNow()
+      const result = await callAppApi<LineLinkCode & { ok: boolean }>('/api/create-line-link-code', {
+        deviceId: cloudSyncCredentials.deviceId,
+        secret: cloudSyncCredentials.secret,
+      })
+      setLineLinkCode(result)
+      setLineLinkStatus('このコードをLINE公式アカウントに送信してください。送信後は自動で確認します')
+    } catch (error) {
+      setLineLinkStatus(`連携コードの発行に失敗: ${getPushFailureMessage(error)}`)
+    } finally {
+      setLineLinkBusy(null)
+    }
+  }
+
+  async function copyLineLinkCode() {
+    if (!lineLinkCode) return
+    try {
+      await navigator.clipboard?.writeText(lineLinkCode.code)
+      setLineLinkStatus('連携コードをコピーしました。LINE公式アカウントに貼り付けて送信してください')
+    } catch {
+      setLineLinkStatus('コードを選択してコピーしてください')
+    }
+  }
+
   async function registerServerPush() {
     if (pushActionBusy) return
     if (!vapidPublicKey) {
@@ -1773,23 +1952,29 @@ function App() {
       const result = await callAppApi<{
         emailConfigured: boolean
         lineConfigured: boolean
+        lineLinked: boolean
         pushEnabled: boolean
         webhookEnabled: boolean
       }>('/api/register-push-subscription', {
         dailyTime: reminderSettings.dailyTime,
         deviceId: cloudSyncCredentials.deviceId,
         emailAddress: reminderSettings.emailAddress,
-        lineMemo: reminderSettings.lineMemo,
+        lineMemo: '',
         secret: cloudSyncCredentials.secret,
         subscription: subscription.toJSON(),
         timezone: reminderSettings.timezone,
-        webhookUrl: reminderSettings.webhookUrl,
+        webhookUrl: reminderSettings.webhookUrl.startsWith('https://') ? reminderSettings.webhookUrl : '',
       })
 
       setReminderSettings((current) => ({ ...current, browser: true, enabled: true, serverPush: result.pushEnabled }))
+      if (result.lineLinked) setLineLinked(true)
+      const extraTargets = [
+        result.lineLinked ? 'LINE通知も保存' : '',
+        result.webhookEnabled ? 'Webhookも保存' : '',
+      ].filter(Boolean)
       showPushActionStatus(
         result.pushEnabled
-          ? '閉じていても届くPushを登録しました'
+          ? `閉じていても届くPushを登録しました${extraTargets.length > 0 ? ` (${extraTargets.join(' / ')})` : ''}`
           : '通知設定を保存しました。ブラウザPushは未登録です',
       )
     } catch (error) {
@@ -2794,22 +2979,69 @@ function App() {
                 placeholder="name@example.com"
               />
             </label>
-            <label className="field compact-field">
-              <span>LINE/Webhook</span>
-              <input
-                autoComplete="off"
-                name="line-webhook-note"
-                value={reminderSettings.lineMemo || reminderSettings.webhookUrl}
-                onChange={(event) =>
-                  setReminderSettings((current) => ({
-                    ...current,
-                    lineMemo: event.target.value,
-                    webhookUrl: event.target.value.startsWith('https://') ? event.target.value : '',
-                  }))
-                }
-                placeholder="LINE ID またはWebhook URL"
-              />
-            </label>
+          </div>
+          <div className="line-link-panel" aria-label="LINE通知の連携">
+            <div className="line-link-heading">
+              <MessageCircle aria-hidden="true" size={17} />
+              <div>
+                <span>LINE通知</span>
+                <strong>{lineLinkLabel}</strong>
+              </div>
+            </div>
+            <p>コードをLINE公式アカウントに送ると、通知先を自動で保存します。</p>
+            {lineLinkCode ? (
+              <div className="line-link-code">
+                <code>{lineLinkCode.code}</code>
+                <small>有効期限 {formatDateTime(lineLinkCode.expiresAt)}</small>
+              </div>
+            ) : null}
+            <p className={lineLinkStatus ? 'line-link-status' : 'line-link-status is-empty'} role="status" aria-live="polite">
+              {lineLinkStatus || 'LINE通知を使う場合は、まず連携コードを作ります'}
+            </p>
+            <div className="line-link-actions">
+              <button disabled={lineLinkBusy !== null} type="button" onClick={() => void createLineLinkCodeAction()}>
+                <MessageCircle aria-hidden="true" size={15} />
+                {lineLinkBusy === 'create' ? '発行中' : 'コード発行'}
+              </button>
+              <button disabled={!lineLinkCode} type="button" onClick={() => void copyLineLinkCode()}>
+                <Copy aria-hidden="true" size={15} />
+                コピー
+              </button>
+              {activeLineOfficialAccountUrl ? (
+                <a href={activeLineOfficialAccountUrl} rel="noreferrer" target="_blank">
+                  <ExternalLink aria-hidden="true" size={15} />
+                  LINEを開く
+                </a>
+              ) : (
+                <span className="line-link-missing">LINE公式URL未設定</span>
+              )}
+              <button disabled={lineLinkBusy !== null} type="button" onClick={() => void refreshLineLinkStatus()}>
+                <RotateCcw aria-hidden="true" size={15} />
+                {lineLinkBusy === 'check' ? '確認中' : '連携確認'}
+              </button>
+            </div>
+            <details className="line-fallback-panel">
+              <summary>Webhook URLを直接使う</summary>
+              <label className="field compact-field">
+                <span>Webhook URL</span>
+                <input
+                  autoComplete="off"
+                  inputMode="url"
+                  name="line-webhook-note"
+                  spellCheck={false}
+                  type="url"
+                  value={reminderSettings.webhookUrl}
+                  onChange={(event) =>
+                    setReminderSettings((current) => ({
+                      ...current,
+                      lineMemo: '',
+                      webhookUrl: event.target.value,
+                    }))
+                  }
+                  placeholder="https://example.com/webhook"
+                />
+              </label>
+            </details>
           </div>
           </section>
 

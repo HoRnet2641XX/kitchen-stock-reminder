@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 
 const jsonHeaders = {
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret',
+  'Access-Control-Allow-Headers': 'authorization, content-type, x-cron-secret, x-line-signature',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Origin': '*',
   'Content-Type': 'application/json; charset=utf-8',
@@ -45,6 +45,16 @@ export function getSupabaseAdmin() {
 
 export function hashSecret(secret) {
   return crypto.createHash('sha256').update(String(secret || '')).digest('hex')
+}
+
+export function isMissingRelationError(error, relationName) {
+  const message = String(error?.message || '')
+  return (
+    error?.code === '42P01' ||
+    (relationName &&
+      message.includes(relationName) &&
+      (message.includes('does not exist') || message.includes('Could not find the table')))
+  )
 }
 
 export function requireDeviceSecret(body) {

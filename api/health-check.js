@@ -28,10 +28,12 @@ export default async function handler(req, res) {
       checkedAt: new Date().toISOString(),
       emailConfigured: Boolean(process.env.RESEND_API_KEY),
       lineConfigured: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
+      lineWebhookConfigured: Boolean(process.env.LINE_CHANNEL_SECRET),
       ok: true,
       providers: {
         resend: Boolean(process.env.RESEND_API_KEY),
         line: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
+        lineWebhook: Boolean(process.env.LINE_CHANNEL_SECRET),
         webPush: Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY),
       },
       supabase: data,

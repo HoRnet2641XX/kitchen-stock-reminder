@@ -18,6 +18,7 @@ Vercel の Production 環境に以下を設定します。
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_API_BASE_URL`
 - `VITE_VAPID_PUBLIC_KEY`
+- `VITE_LINE_OFFICIAL_ACCOUNT_URL`
 - `APP_BASE_URL`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -41,8 +42,11 @@ LINE通知を有効にする場合:
 - LINE Developers で Messaging API チャネルを作成する
 - チャネルアクセストークンを発行する
 - Vercel に `LINE_CHANNEL_ACCESS_TOKEN` を設定する
-- アプリの LINE 欄には送信先の LINE user ID を入れる
-- 代替として、LINE連携済みの HTTPS Webhook URL を入れると Webhook 通知として送れる
+- LINE Developers の Channel secret を Vercel に `LINE_CHANNEL_SECRET` として設定する
+- Vercel に `VITE_LINE_OFFICIAL_ACCOUNT_URL` を設定する
+- LINE Developers の Webhook URL に `https://kitchen-stock-reminder.vercel.app/api/line-webhook` を設定し、Webhook利用を有効にする
+- アプリでは「コード発行」を押し、LINE公式アカウントに表示されたコードを送る
+- 代替として、アプリの詳細欄に HTTPS Webhook URL を入れると Webhook 通知として送れる
 - Vercel を再デプロイする
 
 ## Supabase
@@ -54,6 +58,7 @@ LINE通知を有効にする場合:
 - `kitchen_stock_profiles` が作成されている
 - `kitchen_push_subscriptions` が作成されている
 - `kitchen_client_events` が作成されている
+- `kitchen_line_links` が作成されている
 - RPC `get_kitchen_operational_status` が実行できる
 - `cron.job` に `kitchen_stock_reminders` があり、`active = true`
 
@@ -90,6 +95,9 @@ curl -sS https://kitchen-stock-reminder.vercel.app/api/send-reminders \
 Web Push はブラウザと端末の通知権限に依存するため、実機で確認します。
 
 - Android Chrome またはデスクトップ Chrome で公開URLを開く
+- 設定・バックアップ・参照元でLINE通知のコードを発行する
+- LINE公式アカウントを開き、発行されたコードを送る
+- アプリでLINE通知が「連携済み」になることを確認する
 - アプリ内の Push 登録を実行する
 - 通知許可を許可する
 - サーバー確認を実行する
@@ -100,7 +108,7 @@ iPhone では、Safari からホーム画面に追加した PWA と通知許可�
 ## まだ人の操作が必要なもの
 
 - Resend のアカウント作成、ドメイン検証、API key 発行
-- LINE Developers のチャネル作成、アクセストークン発行、送信先 user ID の取得
+- LINE Developers のチャネル作成、アクセストークン発行、Channel secret 設定、Webhook URL 設定
 - Supabase Auth のメールリンクを実際のメールボックスで開く確認
 - 実際の食品パッケージ写真で OCR の読み取り精度確認
 - 実機ブラウザで通知権限を許可した状態の Push 到達確認
