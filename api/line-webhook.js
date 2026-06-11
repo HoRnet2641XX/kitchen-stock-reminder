@@ -33,7 +33,7 @@ function verifyLineSignature(rawBody, signature) {
 function normalizeLineCode(text) {
   const matched = String(text || '')
     .trim()
-    .match(/\bKSR[-\s]?(\d{6})\b/i)
+    .match(/\bKSR[-\s]?(\d{6,8})\b/i)
   return matched ? `KSR-${matched[1]}` : ''
 }
 
@@ -68,29 +68,33 @@ async function replyLine(replyToken, text) {
 async function linkLineUser(admin, code, userId) {
   const now = new Date().toISOString()
   const { data: link, error } = await admin
-    .from('kitchen_line_links')
-    .select('id, device_id, secret_hash')
-    .eq('code', code)
-    .eq('status', 'pending')
-    .gt('expires_at', now)
+    .from('kitchen_client_events')
+    .select('device_id, metadata')
+    .eq('event_type', 'line_link_code')
+    .eq('message', code)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
 
   if (error) throw error
   if (!link) return null
+  if (!link.metadata?.secretHash || new Date(link.metadata.expiresAt || 0).getTime() <= Date.now()) return null
 
   const displayName = await getLineDisplayName(userId)
   const { error: insertError } = await admin
-    .from('kitchen_line_links')
+    .from('kitchen_client_events')
     .insert({
-      code: `${code}-LINKED-${crypto.randomUUID()}`,
       device_id: link.device_id,
-      expires_at: now,
-      line_display_name: displayName || null,
-      line_user_id: userId,
-      linked_at: now,
-      secret_hash: link.secret_hash,
-      status: 'linked',
-      updated_at: now,
+      event_type: 'line_linked',
+      message: code,
+      metadata: {
+        code,
+        lineDisplayName: displayName || '',
+        lineUserId: userId,
+        linkedAt: now,
+        secretHash: link.metadata.secretHash,
+        status: 'linked',
+      },
     })
 
   if (insertError) throw insertError
@@ -99,7 +103,7 @@ async function linkLineUser(admin, code, userId) {
     .from('kitchen_push_subscriptions')
     .update({ line_target: userId, updated_at: now })
     .eq('device_id', link.device_id)
-    .eq('secret_hash', link.secret_hash)
+    .eq('secret_hash', link.metadata.secretHash)
     .eq('status', 'active')
 
   if (subscriptionError) console.warn('LINE subscription target update failed', subscriptionError.message)

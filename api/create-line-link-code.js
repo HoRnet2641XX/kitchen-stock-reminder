@@ -12,7 +12,7 @@ import {
 const codeExpiresMinutes = 15
 
 function createLineLinkCode() {
-  return `KSR-${crypto.randomInt(100000, 1000000)}`
+  return `KSR-${crypto.randomInt(10000000, 100000000)}`
 }
 
 function getLineOfficialAccountUrl() {
@@ -37,15 +37,19 @@ export default async function handler(req, res) {
     for (let attempt = 0; attempt < 4 && !inserted; attempt += 1) {
       const code = createLineLinkCode()
       const { data, error } = await admin
-        .from('kitchen_line_links')
+        .from('kitchen_client_events')
         .insert({
-          code,
           device_id: deviceId,
-          expires_at: expiresAt,
-          secret_hash: secretHash,
-          status: 'pending',
+          event_type: 'line_link_code',
+          message: code,
+          metadata: {
+            code,
+            expiresAt,
+            secretHash,
+            status: 'pending',
+          },
         })
-        .select('code, expires_at')
+        .select('message, metadata')
         .single()
 
       if (!error) inserted = data
@@ -57,8 +61,8 @@ export default async function handler(req, res) {
     if (!inserted) throw new Error('Could not create LINE link code')
 
     sendJson(res, 200, {
-      code: inserted.code,
-      expiresAt: inserted.expires_at,
+      code: inserted.message,
+      expiresAt: inserted.metadata.expiresAt,
       lineOfficialAccountUrl: getLineOfficialAccountUrl(),
       ok: true,
     })

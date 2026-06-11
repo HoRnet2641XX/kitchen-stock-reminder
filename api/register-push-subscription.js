@@ -2,7 +2,6 @@ import {
   getSupabaseAdmin,
   handleError,
   handleOptions,
-  isMissingRelationError,
   readJson,
   requireDeviceSecret,
   sendJson,
@@ -24,17 +23,16 @@ export default async function handler(req, res) {
     await verifyProfile(admin, deviceId, secretHash)
 
     const { data: linkedLine, error: linkedLineError } = await admin
-      .from('kitchen_line_links')
-      .select('line_user_id')
+      .from('kitchen_client_events')
+      .select('metadata, created_at')
       .eq('device_id', deviceId)
-      .eq('secret_hash', secretHash)
-      .eq('status', 'linked')
-      .not('line_user_id', 'is', null)
-      .order('linked_at', { ascending: false })
+      .eq('event_type', 'line_linked')
+      .eq('metadata->>secretHash', secretHash)
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    if (linkedLineError && !isMissingRelationError(linkedLineError, 'kitchen_line_links')) throw linkedLineError
+    if (linkedLineError) throw linkedLineError
 
     const lineValue = String(body.lineMemo || '').trim()
     const explicitWebhookUrl = String(body.webhookUrl || '').trim()
@@ -44,7 +42,7 @@ export default async function handler(req, res) {
         ? explicitWebhookUrl
         : ''
     const manualLineTarget = /^https:\/\//.test(lineValue) ? '' : lineValue
-    const lineTarget = linkedLine && !linkedLineError ? linkedLine.line_user_id || manualLineTarget : manualLineTarget
+    const lineTarget = linkedLine?.metadata?.lineUserId || manualLineTarget
 
     const { error } = await admin.from('kitchen_push_subscriptions').upsert(
       {
@@ -68,7 +66,7 @@ export default async function handler(req, res) {
     sendJson(res, 200, {
       emailConfigured: Boolean(process.env.RESEND_API_KEY),
       lineConfigured: Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN),
-      lineLinked: Boolean(linkedLine && !linkedLineError && linkedLine.line_user_id),
+      lineLinked: Boolean(linkedLine?.metadata?.lineUserId),
       ok: true,
       pushEnabled: true,
       webhookEnabled: Boolean(webhookUrl),
