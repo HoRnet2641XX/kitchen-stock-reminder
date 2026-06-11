@@ -25,3 +25,14 @@ test('買い物リストを操作できる', async ({ page }) => {
   await page.getByLabel('買うものを追加').click()
   await expect(page.getByText('味噌')).toBeVisible()
 })
+
+test('在庫画面で通知設定を開ける', async ({ page }) => {
+  await page.getByRole('button', { name: /^在庫 \d+$/ }).click()
+  const drawer = page.locator('details.support-drawer')
+  await drawer.locator('summary').click()
+
+  await expect(drawer).toHaveAttribute('open', '')
+  await expect(drawer.getByText('登録前提')).toBeVisible()
+  await expect(drawer.getByRole('button', { name: 'Push登録' })).toBeVisible()
+  await expect(drawer.getByRole('button', { name: 'サーバー確認' })).toBeVisible()
+})

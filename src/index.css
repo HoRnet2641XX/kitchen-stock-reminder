@@ -26,8 +26,8 @@
   --shadow-control: 0 7px 16px oklch(38% 0.065 145 / 0.1);
   --surface: var(--rice-white);
   --surface-elevated: oklch(99.1% 0.008 101);
-  --text: oklch(35% 0.03 76);
-  --text-strong: oklch(26% 0.036 76);
+  --text: oklch(38% 0.028 76);
+  --text-strong: oklch(30% 0.032 76);
   --warning: var(--miso);
   --font-sans: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', YuGothic, Meiryo,
     -apple-system, BlinkMacSystemFont, system-ui, sans-serif;

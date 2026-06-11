@@ -540,8 +540,8 @@ async function callAppApi<T>(path: string, body: Record<string, unknown>): Promi
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
   })
-  const payload = (await response.json().catch(() => ({}))) as T & { message?: string }
-  if (!response.ok) throw new Error(payload.message || 'API request failed')
+  const payload = (await response.json().catch(() => ({}))) as T & { error?: string; message?: string }
+  if (!response.ok) throw new Error(payload.message || payload.error || `API ${response.status}`)
   return payload
 }
 
@@ -550,6 +550,28 @@ function urlBase64ToUint8Array(value: string) {
   const base64 = `${value}${padding}`.replaceAll('-', '+').replaceAll('_', '/')
   const rawData = window.atob(base64)
   return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)))
+}
+
+function isLocalDevApiBaseMissing() {
+  if (typeof window === 'undefined' || appApiBaseUrl) return false
+  return ['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname)
+}
+
+function getPushFailureMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : ''
+  if (message.includes('Cloud profile not found')) {
+    return 'クラウド保存がまだ作成されていません。数秒後にもう一度Push登録を押してください'
+  }
+  if (message.includes('Invalid sync credentials')) {
+    return '端末キーを確認できませんでした。同期再開かクラウド削除後に再登録してください'
+  }
+  if (message.includes('Supabase admin environment')) {
+    return 'サーバー側のSupabase設定が未完了です'
+  }
+  if (message.includes('API 404')) {
+    return 'ローカルのAPI向き先が未設定です'
+  }
+  return message || '原因を特定できませんでした'
 }
 
 function normalizeOcrDate(year: number, month: number, day: number) {
@@ -825,6 +847,30 @@ function getDeadlineReasonDetail(reason: string, sourceSummary: ReturnType<typeo
   return `${reason} / ${sourceSummary.label}`
 }
 
+function getEvidenceSummary(reason: string, sourceSummary: ReturnType<typeof getSourceSummary>) {
+  if (reason === '消費期限' || reason === '賞味期限' || reason === '期限種別なし') {
+    return {
+      className: 'is-package',
+      detail: '商品の表示を優先',
+      label: '包装表示',
+    }
+  }
+
+  if (sourceSummary.checked) {
+    return {
+      className: 'is-guide',
+      detail: sourceSummary.label,
+      label: '保存目安',
+    }
+  }
+
+  return {
+    className: 'is-unknown',
+    detail: '参照元を確認してください',
+    label: '要確認',
+  }
+}
+
 function getNotificationPermissionState(): NotificationPermission | 'unsupported' {
   if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported'
   return Notification.permission
@@ -905,6 +951,8 @@ function App() {
   const [liveResearch, setLiveResearch] = useState<LiveResearchResult | null>(null)
   const [researchBusy, setResearchBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [pushActionStatus, setPushActionStatus] = useState('')
+  const [pushActionBusy, setPushActionBusy] = useState<'register' | 'server' | null>(null)
   const [voiceState, setVoiceState] = useState('音声入力')
   const [ocrState, setOcrState] = useState('期限OCR')
   const [reminderSettings, setReminderSettings] = useState<ReminderSettings>(readReminderSettings)
@@ -1189,6 +1237,27 @@ function App() {
   const lowStockCount = activeInsights.filter((insight) => (insight.item.remainingPercent ?? 100) <= 25).length
   const shoppingTodoCount = visibleShoppingItems.length
   const reminderTargetCount = alertInsights.filter((insight) => insight.status !== 'unknown').length
+  const localDevApiMissing = isLocalDevApiBaseMissing()
+  const notificationBlocked = notificationPermission === 'denied'
+  const pushSetupLabel = notificationBlocked
+    ? '通知ブロック中'
+    : !vapidPublicKey
+    ? '公開鍵未設定'
+    : localDevApiMissing
+      ? 'API未設定'
+      : !supabaseClient
+        ? 'クラウド未設定'
+        : cloudSyncPaused
+          ? '同期停止中'
+          : cloudSyncReady
+            ? '準備OK'
+            : '同期準備中'
+  const pushSetupText =
+    pushSetupLabel === '通知ブロック中'
+      ? 'ブラウザのサイト設定から通知を許可してから、もう一度Push登録を押してください。'
+      : pushSetupLabel === '準備OK'
+      ? 'Push登録前に在庫をクラウドへ保存してから、閉じていても届く通知を登録します。'
+      : 'Push登録には公開鍵、API、クラウド同期、通知許可が必要です。'
   const nextActionView: AppView = firstAttention ? 'today' : 'add'
   const nextActionLabel = firstAttention ? '確認する' : '登録する'
   const secondaryActionView: AppView = shoppingTodoCount > 0 ? 'shopping' : 'inventory'
@@ -1617,30 +1686,81 @@ function App() {
     setNotice('在庫と買い物リストをコピーしました')
   }
 
+  function showPushActionStatus(message: string) {
+    setNotice(message)
+    setPushActionStatus(message)
+  }
+
+  async function syncCloudStateNow() {
+    if (!supabaseClient) throw new Error('クラウド同期が未設定です')
+    if (cloudSyncPaused) throw new Error('クラウド同期が停止中です')
+
+    setCloudSyncStatus('クラウド同期 保存中')
+    const payload = createCloudSyncPayload(
+      items,
+      shoppingItems,
+      reminderSettings,
+      createReminderSnapshotTargets(items, currentDay),
+    )
+    const { error } = await supabaseClient.rpc('upsert_kitchen_stock_state', {
+      p_device_id: cloudSyncCredentials.deviceId,
+      p_payload: payload,
+      p_secret: cloudSyncCredentials.secret,
+    })
+
+    if (error) throw new Error(error.message)
+    setCloudSyncReady(true)
+    setCloudSyncStatus(`クラウド同期済み ${nowTime()}`)
+  }
+
   async function registerServerPush() {
+    if (pushActionBusy) return
     if (!vapidPublicKey) {
-      setNotice('サーバーPushの公開鍵が未設定です')
+      showPushActionStatus('サーバーPushの公開鍵が未設定です')
+      return
+    }
+    if (localDevApiMissing) {
+      showPushActionStatus('ローカルのAPI向き先が未設定です')
+      return
+    }
+    if (!supabaseClient) {
+      showPushActionStatus('サーバーPushにはクラウド同期設定が必要です')
+      return
+    }
+    if (cloudSyncPaused) {
+      showPushActionStatus('サーバーPushにはクラウド同期の再開が必要です')
       return
     }
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setNotice('このブラウザはサーバーPushに対応していません')
+      showPushActionStatus('このブラウザはサーバーPushに対応していません')
       return
     }
     if (!('Notification' in window)) {
       setNotificationPermission('unsupported')
-      setNotice('このブラウザは通知に対応していません')
+      showPushActionStatus('このブラウザは通知に対応していません')
+      return
+    }
+    if (Notification.permission === 'denied') {
+      setNotificationPermission('denied')
+      showPushActionStatus('通知がブロック中です。ブラウザのサイト設定で通知を許可してから再度押してください')
       return
     }
 
+    if (Notification.permission === 'default') {
+      showPushActionStatus('ブラウザの通知許可を待っています')
+    }
     const permission =
       Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission
     setNotificationPermission(permission)
     if (permission !== 'granted') {
-      setNotice('通知が許可されていません')
+      showPushActionStatus('通知が許可されていません')
       return
     }
 
     try {
+      setPushActionBusy('register')
+      showPushActionStatus('Push登録の準備中です')
+      await syncCloudStateNow()
       const registration = await navigator.serviceWorker.ready
       const existing = await registration.pushManager.getSubscription()
       const subscription =
@@ -1667,26 +1787,48 @@ function App() {
       })
 
       setReminderSettings((current) => ({ ...current, browser: true, enabled: true, serverPush: result.pushEnabled }))
-      setNotice(
+      showPushActionStatus(
         result.pushEnabled
           ? '閉じていても届くPushを登録しました'
           : '通知設定を保存しました。ブラウザPushは未登録です',
       )
-    } catch {
-      setNotice('サーバーPush登録に失敗しました')
+    } catch (error) {
+      showPushActionStatus(`サーバーPush登録に失敗: ${getPushFailureMessage(error)}`)
+    } finally {
+      setPushActionBusy(null)
     }
   }
 
   async function sendServerReminderNow() {
+    if (pushActionBusy) return
     try {
-      const result = await callAppApi<{ sent: number; webPushReady: boolean }>('/api/send-reminders', {
-        deviceId: cloudSyncCredentials.deviceId,
-        force: true,
-        secret: cloudSyncCredentials.secret,
-      })
-      setNotice(result.webPushReady ? `サーバー通知を確認しました (${result.sent}件)` : 'サーバーPush鍵が未設定です')
-    } catch {
-      setNotice('サーバー通知の送信に失敗しました')
+      if (!reminderSettings.serverPush) {
+        showPushActionStatus('先にPush登録を完了してください')
+        return
+      }
+      setPushActionBusy('server')
+      showPushActionStatus('サーバー通知を確認中です')
+      const result = await callAppApi<{ checked: number; sent: number; skipped: number; webPushReady: boolean }>(
+        '/api/send-reminders',
+        {
+          deviceId: cloudSyncCredentials.deviceId,
+          force: true,
+          secret: cloudSyncCredentials.secret,
+        },
+      )
+      if (!result.webPushReady) {
+        showPushActionStatus('サーバーPush鍵が未設定です')
+      } else if (result.checked === 0) {
+        showPushActionStatus('登録済みのPush購読が見つかりません。先にPush登録を押してください')
+      } else if (result.sent === 0) {
+        showPushActionStatus(`サーバー確認OK。通知対象はありません (${result.skipped}件確認)`)
+      } else {
+        showPushActionStatus(`サーバー通知を送信しました (${result.sent}件)`)
+      }
+    } catch (error) {
+      showPushActionStatus(`サーバー通知の送信に失敗: ${getPushFailureMessage(error)}`)
+    } finally {
+      setPushActionBusy(null)
     }
   }
 
@@ -1769,6 +1911,9 @@ function App() {
 
   return (
     <main className={`app-shell view-${activeView}`}>
+      <a className="skip-link" href="#today-check">
+        本文へ移動
+      </a>
       <header className="app-header">
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true">
@@ -2385,6 +2530,7 @@ function App() {
                 const primarySource = sourceLinks[0]
                 const sourceSummary = getSourceSummary(insight.guide)
                 const deadlineReasonDetail = getDeadlineReasonDetail(insight.deadlineReason, sourceSummary)
+                const evidenceSummary = getEvidenceSummary(insight.deadlineReason, sourceSummary)
 
                 return (
                   <article className="inventory-row" key={insight.item.id}>
@@ -2402,6 +2548,10 @@ function App() {
                           <span>{insight.item.quantity}</span>
                           <span>残量{insight.item.remainingPercent ?? 100}%</span>
                           <span>{meta.label}</span>
+                        </div>
+                        <div className="item-data-line">
+                          <span className={evidenceSummary.className}>{evidenceSummary.label}</span>
+                          <small>{evidenceSummary.detail}</small>
                         </div>
                         <div className={`item-life-strip ${status.className}`} aria-label={`期限の近さ ${formatDaysLeft(insight.daysLeft)}`}>
                           <span
@@ -2525,8 +2675,10 @@ function App() {
           </div>
       </section>
 
-      <section className="utility-grid">
-        <section className="rail-section">
+      <details className="support-drawer">
+        <summary>設定・バックアップ・参照元</summary>
+        <section className="utility-grid">
+          <section className="rail-section">
           <div className="section-heading">
             <ChefHat size={20} />
             <div>
@@ -2543,9 +2695,9 @@ function App() {
               </div>
             ))}
           </div>
-        </section>
+          </section>
 
-        <section className="rail-section">
+          <section className="rail-section">
           <div className="section-heading">
             <Settings size={20} />
             <div>
@@ -2562,7 +2714,7 @@ function App() {
             />
             <span>毎日チェック</span>
           </label>
-          <div className="reminder-status" aria-label="期限通知の状態">
+          <div className="reminder-status" aria-busy={pushActionBusy ? 'true' : undefined} aria-label="期限通知の状態">
             <div>
               <span>確認タイミング</span>
               <strong>{reminderSettings.enabled ? `毎日 ${reminderSettings.dailyTime} 以降` : '停止中'}</strong>
@@ -2579,20 +2731,39 @@ function App() {
               <span>サーバーPush</span>
               <strong>{reminderSettings.serverPush ? '登録済み' : '未登録'}</strong>
             </div>
-            <p>
-              アプリ起動中は毎分確認します。Push登録後は、閉じていてもサーバー側の定期チェックから通知できます。
+            <div>
+              <span>登録前提</span>
+              <strong>{pushSetupLabel}</strong>
+            </div>
+            <p>{pushSetupText}</p>
+            <p className={pushActionStatus ? 'push-action-status' : 'push-action-status is-empty'} role="status" aria-live="polite">
+              {pushActionStatus || 'Push登録とサーバー確認の結果をここに表示します'}
             </p>
+            {notificationBlocked ? (
+              <div className="push-unblock-guide" role="note" aria-label="通知ブロックの解除手順">
+                <strong>通知ブロックの解除</strong>
+                <ol>
+                  <li>アドレスバー左のサイト設定を開く</li>
+                  <li>通知を「許可」に変更</li>
+                  <li>ページを再読み込みしてPush登録</li>
+                </ol>
+                <small>ブラウザ権限はアプリから変更できません。</small>
+              </div>
+            ) : null}
+            {!reminderSettings.serverPush ? (
+              <p className="push-action-hint">サーバー確認はPush登録が完了すると使えます。</p>
+            ) : null}
             <button type="button" onClick={() => void sendReminder(false)}>
               <Bell size={16} />
               今すぐ確認
             </button>
-            <button type="button" onClick={() => void registerServerPush()}>
+            <button disabled={pushActionBusy !== null} type="button" onClick={() => void registerServerPush()}>
               <Cloud size={16} />
-              Push登録
+              {pushActionBusy === 'register' ? '登録中' : 'Push登録'}
             </button>
-            <button type="button" onClick={() => void sendServerReminderNow()}>
+            <button disabled={pushActionBusy !== null} type="button" onClick={() => void sendServerReminderNow()}>
               <ExternalLink size={16} />
-              サーバー確認
+              {pushActionBusy === 'server' ? '確認中' : 'サーバー確認'}
             </button>
           </div>
           <div className="form-row utility-form">
@@ -2640,9 +2811,9 @@ function App() {
               />
             </label>
           </div>
-        </section>
+          </section>
 
-        <section className="rail-section">
+          <section className="rail-section">
           <div className="section-heading">
             <Cloud size={20} />
             <div>
@@ -2736,9 +2907,9 @@ function App() {
               利用条件
             </button>
           </div>
-        </section>
+          </section>
 
-        <section className="rail-section source-summary">
+          <section className="rail-section source-summary">
           <div className="section-heading">
             <Database size={20} />
             <div>
@@ -2755,8 +2926,9 @@ function App() {
             ))}
           </div>
           <p className="safety-note">期限は目安です。包装表示、保存温度、開封状態を優先してください。</p>
+          </section>
         </section>
-      </section>
+      </details>
 
       {tourOpen ? (
         <div className="tour-overlay" role="presentation">

@@ -31,7 +31,7 @@ export const referenceSources: ReferenceSource[] = [
     name: 'Cold Food Storage Chart',
     publisher: 'FoodSafety.gov',
     url: 'https://www.foodsafety.gov/food-safety-charts/cold-food-storage-charts',
-    checked: '2026-05-21',
+    checked: '2026-06-08',
     note: '冷蔵と冷凍の保存目安。冷凍の期間は主に品質保持の目安。',
   },
   {
@@ -39,7 +39,7 @@ export const referenceSources: ReferenceSource[] = [
     name: 'FSIS - FoodKeeper Data',
     publisher: 'USDA / Data.gov',
     url: 'https://catalog.data.gov/dataset/fsis-foodkeeper-data',
-    checked: '2026-05-21',
+    checked: '2026-06-08',
     note: 'FoodKeeperアプリの公開データ。Data.gov上では2025-01-22更新。',
   },
   {
@@ -47,7 +47,7 @@ export const referenceSources: ReferenceSource[] = [
     name: 'Are You Storing Food Safely?',
     publisher: 'U.S. Food and Drug Administration',
     url: 'https://www.fda.gov/consumers/consumer-updates/are-you-storing-food-safely',
-    checked: '2026-05-21',
+    checked: '2026-06-08',
     note: '冷蔵40°F以下、冷凍0°F以下、冷凍食品の品質低下に関する説明。',
   },
   {
@@ -55,7 +55,7 @@ export const referenceSources: ReferenceSource[] = [
     name: '消費期限と賞味期限',
     publisher: '農林水産省',
     url: 'https://www.maff.go.jp/j/syokuiku/kodomo_navi/featured/abc2.html',
-    checked: '2026-05-21',
+    checked: '2026-06-08',
     note: '消費期限と賞味期限の意味、未開封かつ表示どおり保存した場合の前提。',
   },
   {
@@ -63,7 +63,7 @@ export const referenceSources: ReferenceSource[] = [
     name: '冷蔵庫のかしこい使い方',
     publisher: '農林水産省',
     url: 'https://www.maff.go.jp/j/syouan/seisaku/foodpoisoning/frige.html',
-    checked: '2026-05-21',
+    checked: '2026-06-08',
     note: '購入後すぐの冷蔵・冷凍、肉や魚のドリップ対策、小分け保存の説明。',
   },
   {
@@ -71,7 +71,7 @@ export const referenceSources: ReferenceSource[] = [
     name: 'Storing vegetables and fruits',
     publisher: 'Health Canada',
     url: 'https://www.canada.ca/en/health-canada/services/food-guide/eating-support/kitchen/cooking-skills/storing-vegetables-fruits.html',
-    checked: '2026-05-21',
+    checked: '2026-06-08',
     note: '野菜・果物の保存場所、冷凍に向く食材、冷凍12か月目安の説明。',
   },
 ]
