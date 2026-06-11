@@ -25,3 +25,8 @@ create index if not exists kitchen_line_links_status_expires_idx
 create index if not exists kitchen_line_links_linked_idx
   on public.kitchen_line_links(device_id, secret_hash, linked_at desc)
   where status = 'linked' and line_user_id is not null;
+
+grant usage on schema public to service_role;
+grant all on table public.kitchen_line_links to service_role;
+
+notify pgrst, 'reload schema';
