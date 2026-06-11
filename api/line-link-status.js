@@ -57,15 +57,7 @@ export default async function handler(req, res) {
     if (linkedLineError) throw linkedLineError
 
     if (latestCode?.status === 'pending' && new Date(latestCode.expires_at).getTime() <= Date.now()) {
-      const { data: expiredLink, error: expireError } = await admin
-        .from('kitchen_line_links')
-        .update({ status: 'expired', updated_at: new Date().toISOString() })
-        .eq('code', latestCode.code)
-        .select('code, expires_at, line_display_name, line_user_id, linked_at, status')
-        .single()
-
-      if (expireError) throw expireError
-      return sendJson(res, 200, toClientStatus(expiredLink, linkedLine))
+      return sendJson(res, 200, toClientStatus({ ...latestCode, status: 'expired' }, linkedLine))
     }
 
     sendJson(res, 200, toClientStatus(latestCode, linkedLine))

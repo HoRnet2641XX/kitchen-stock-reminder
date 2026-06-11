@@ -32,13 +32,6 @@ export default async function handler(req, res) {
     const now = new Date()
     const expiresAt = new Date(now.getTime() + codeExpiresMinutes * 60_000).toISOString()
 
-    await admin
-      .from('kitchen_line_links')
-      .update({ status: 'expired', updated_at: now.toISOString() })
-      .eq('device_id', deviceId)
-      .eq('secret_hash', secretHash)
-      .eq('status', 'pending')
-
     let inserted = null
     let insertError = null
     for (let attempt = 0; attempt < 4 && !inserted; attempt += 1) {

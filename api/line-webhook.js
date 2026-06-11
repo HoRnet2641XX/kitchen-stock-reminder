@@ -79,18 +79,21 @@ async function linkLineUser(admin, code, userId) {
   if (!link) return null
 
   const displayName = await getLineDisplayName(userId)
-  const { error: updateError } = await admin
+  const { error: insertError } = await admin
     .from('kitchen_line_links')
-    .update({
+    .insert({
+      code: `${code}-LINKED-${crypto.randomUUID()}`,
+      device_id: link.device_id,
+      expires_at: now,
       line_display_name: displayName || null,
       line_user_id: userId,
       linked_at: now,
+      secret_hash: link.secret_hash,
       status: 'linked',
       updated_at: now,
     })
-    .eq('id', link.id)
 
-  if (updateError) throw updateError
+  if (insertError) throw insertError
 
   const { error: subscriptionError } = await admin
     .from('kitchen_push_subscriptions')
@@ -99,7 +102,7 @@ async function linkLineUser(admin, code, userId) {
     .eq('secret_hash', link.secret_hash)
     .eq('status', 'active')
 
-  if (subscriptionError) throw subscriptionError
+  if (subscriptionError) console.warn('LINE subscription target update failed', subscriptionError.message)
   return { displayName, ...link }
 }
 
