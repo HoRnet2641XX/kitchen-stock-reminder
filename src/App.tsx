@@ -585,8 +585,14 @@ function getPushFailureMessage(error: unknown) {
   if (message.includes('Supabase admin environment')) {
     return 'サーバー側のSupabase設定が未完了です'
   }
+  if (message.includes('Could not find the table') && message.includes('kitchen_line_links')) {
+    return 'SupabaseのREST schema cacheがLINE連携テーブルを認識していません。service_role権限とschema reloadを確認してください'
+  }
+  if (message.includes('permission denied') && message.includes('kitchen_line_links')) {
+    return 'SupabaseのLINE連携テーブルにservice_role権限がありません。grant SQLを実行してください'
+  }
   if (message.includes('kitchen_line_links') || message.includes('LINE linking')) {
-    return 'SupabaseのLINE連携テーブルが未適用です。migrationを適用してください'
+    return `SupabaseのLINE連携テーブルでエラーが出ています: ${message}`
   }
   if (message.includes('API 404')) {
     return 'ローカルのAPI向き先が未設定です'
