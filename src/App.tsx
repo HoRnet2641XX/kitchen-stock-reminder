@@ -293,33 +293,22 @@ const researchTargets = [
 
 const tourSteps = [
   {
-    actionLabel: '通知設定へ移動',
+    actionLabel: '準備を開く',
     icon: Bell,
-    label: '通知',
-    preview: 'LINE連携・Push登録・確認時刻',
+    label: '準備',
+    preview: 'LINE通知・スマホ通知・ホーム画面',
     step: '1',
-    target: '#notification-settings',
-    title: 'まず通知を受け取れる状態にする',
+    target: '#setup-start',
+    title: '通知とホーム画面だけ先に整える',
     view: 'inventory' as AppView,
-    body: '期限2日前や今日までの食材に気づけるよう、LINE通知とブラウザPushを先に設定します。',
-  },
-  {
-    actionLabel: 'PWA案内へ移動',
-    icon: Share2,
-    label: 'PWA',
-    preview: 'ホーム画面追加・全画面表示・通知',
-    step: '2',
-    target: '#pwa-guide',
-    title: 'スマホのホーム画面から開く',
-    view: 'inventory' as AppView,
-    body: 'SafariやChromeの共有メニューからホーム画面に追加すると、アプリのように開けます。買い物前や料理前にすぐ確認できます。',
+    body: 'LINE通知、スマホ通知、確認時刻、ホーム画面追加をここで整えます。毎日見る前の最初の準備です。',
   },
   {
     actionLabel: '確認へ移動',
     icon: AlertTriangle,
     label: '確認',
     preview: '期限超過・今日まで・残量少',
-    step: '3',
+    step: '2',
     target: '#today-check',
     title: '期限が近い食材を見る',
     view: 'today' as AppView,
@@ -330,7 +319,7 @@ const tourSteps = [
     icon: ShoppingBasket,
     label: '買い物',
     preview: '不足・使い切り・残量少',
-    step: '4',
+    step: '3',
     target: '#shopping-list',
     title: '足りない食材を買い物へ',
     view: 'shopping' as AppView,
@@ -341,7 +330,7 @@ const tourSteps = [
     icon: PackagePlus,
     label: '登録',
     preview: '食材名・保存場所・包装期限',
-    step: '5',
+    step: '4',
     target: '#add-food',
     title: '買った食材を登録する',
     view: 'add' as AppView,
@@ -352,7 +341,7 @@ const tourSteps = [
     icon: ClipboardList,
     label: '在庫',
     preview: '保存場所・残量・使い切り',
-    step: '6',
+    step: '5',
     target: '#inventory-list',
     title: '残量と保存場所を更新する',
     view: 'inventory' as AppView,
@@ -1299,7 +1288,6 @@ function App() {
   const totalActive = activeInsights.length
   const recipeIdeas = getRecipeIdeas(insights)
   const firstAttention = alertInsights[0]
-  const radarInsights = activeInsights.slice(0, 4)
   const shoppingTodoCount = visibleShoppingItems.length
   const reminderTargetCount = alertInsights.filter((insight) => insight.status !== 'unknown').length
   const localDevApiMissing = isLocalDevApiBaseMissing()
@@ -1307,22 +1295,22 @@ function App() {
   const pushSetupLabel = notificationBlocked
     ? '通知ブロック中'
     : !vapidPublicKey
-    ? '公開鍵未設定'
+    ? '管理者設定待ち'
     : localDevApiMissing
-      ? 'API未設定'
+      ? '管理者設定待ち'
       : !supabaseClient
-        ? 'クラウド未設定'
+        ? 'バックアップ未設定'
         : cloudSyncPaused
-          ? '同期停止中'
+          ? 'バックアップ停止中'
           : cloudSyncReady
             ? '準備OK'
-            : '同期準備中'
+            : 'バックアップ準備中'
   const pushSetupText =
     pushSetupLabel === '通知ブロック中'
-      ? 'ブラウザのサイト設定から通知を許可してから、もう一度Push登録を押してください。'
+      ? 'ブラウザのサイト設定で通知を許可してください。'
       : pushSetupLabel === '準備OK'
-      ? 'Push登録前に在庫をクラウドへ保存してから、閉じていても届く通知を登録します。'
-      : 'Push登録には公開鍵、API、クラウド同期、通知許可が必要です。'
+      ? 'アプリを閉じていても期限通知を受け取れます。'
+      : '公開版の通知準備を確認しています。設定後に使えます。'
   const nextActionView: AppView = firstAttention ? 'today' : 'add'
   const nextActionLabel = firstAttention ? '確認する' : '登録する'
   const secondaryActionView: AppView = shoppingTodoCount > 0 ? 'shopping' : 'inventory'
@@ -1339,9 +1327,12 @@ function App() {
     : lineLinkCode
       ? 'コード発行済み'
       : '未連携'
-  const notificationReadyCount =
-    (lineNotificationReady ? 1 : 0) + (pushNotificationReady ? 1 : 0) + (reminderSettings.enabled ? 1 : 0)
-  const notificationReadinessLabel = `${notificationReadyCount}/3`
+  const setupReadyCount =
+    (lineNotificationReady ? 1 : 0) +
+    (pushNotificationReady ? 1 : 0) +
+    (reminderSettings.enabled ? 1 : 0) +
+    1
+  const setupReadyLabel = `${setupReadyCount}/4`
   const focusKicker = notificationSetupNeeded ? '初回の3分' : '今日の台所'
   const focusTitle = notificationSetupNeeded
     ? '期限通知を先に整える'
@@ -1349,11 +1340,29 @@ function App() {
       ? `${firstAttention.item.name}から使う`
       : '買ったら、しまう前に登録'
   const focusSubtext = notificationSetupNeeded
-    ? 'LINEとPushを済ませると、期限2日前と当日に見落としを防げます。'
+    ? 'LINEとスマホ通知を済ませると、期限2日前と当日に見落としを防げます。'
     : firstAttention
       ? `${formatDaysLeft(firstAttention.daysLeft)}。使う、確認する、買い足すをここで判断します。`
       : '冷蔵・冷凍・常温の保存目安を見ながら、食材を一つずつ残します。'
   const primaryActionLabel = notificationSetupNeeded ? '通知を整える' : nextActionLabel
+  const nextKitchenActionTitle = notificationSetupNeeded
+    ? '通知とホーム画面を整える'
+    : firstAttention
+      ? `${firstAttention.item.name}を先に確認`
+      : shoppingTodoCount > 0
+        ? '買い足すものを確認'
+        : '買った食材を追加'
+  const nextKitchenActionMeta = notificationSetupNeeded
+    ? `${setupReadyLabel} 完了`
+    : firstAttention
+      ? formatDaysLeft(firstAttention.daysLeft)
+      : shoppingTodoCount > 0
+        ? `${shoppingTodoCount}件`
+        : '登録へ'
+  const secondaryKitchenActionTitle =
+    shoppingTodoCount > 0 ? '買い物リストを整える' : totalActive > 0 ? '在庫を見直す' : '最初の食材を登録'
+  const secondaryKitchenActionMeta =
+    shoppingTodoCount > 0 ? `${shoppingTodoCount}件` : totalActive > 0 ? `${totalActive}件` : '未登録'
 
   const refreshLineLinkStatus = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -1486,7 +1495,11 @@ function App() {
   }
 
   function goToTourTarget() {
-    if (tourStepData.target === '#notification-settings' || tourStepData.target === '#pwa-guide') {
+    if (
+      tourStepData.target === '#setup-start' ||
+      tourStepData.target === '#notification-settings' ||
+      tourStepData.target === '#pwa-guide'
+    ) {
       closeTour()
       openSupportDrawerTarget(tourStepData.target)
       return
@@ -1956,23 +1969,23 @@ function App() {
   async function registerServerPush() {
     if (pushActionBusy) return
     if (!vapidPublicKey) {
-      showPushActionStatus('サーバーPushの公開鍵が未設定です')
+      showPushActionStatus('スマホ通知の管理者設定が未完了です')
       return
     }
     if (localDevApiMissing) {
-      showPushActionStatus('ローカルのAPI向き先が未設定です')
+      showPushActionStatus('通知を送るための接続先が未設定です')
       return
     }
     if (!supabaseClient) {
-      showPushActionStatus('サーバーPushにはクラウド同期設定が必要です')
+      showPushActionStatus('スマホ通知にはバックアップ設定が必要です')
       return
     }
     if (cloudSyncPaused) {
-      showPushActionStatus('サーバーPushにはクラウド同期の再開が必要です')
+      showPushActionStatus('バックアップを再開してからスマホ通知をONにしてください')
       return
     }
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      showPushActionStatus('このブラウザはサーバーPushに対応していません')
+      showPushActionStatus('このブラウザはスマホ通知に対応していません')
       return
     }
     if (!('Notification' in window)) {
@@ -1999,7 +2012,7 @@ function App() {
 
     try {
       setPushActionBusy('register')
-      showPushActionStatus('Push登録の準備中です')
+      showPushActionStatus('スマホ通知の準備中です')
       await syncCloudStateNow()
       const registration = await navigator.serviceWorker.ready
       const existing = await registration.pushManager.getSubscription()
@@ -2035,11 +2048,11 @@ function App() {
       ].filter(Boolean)
       showPushActionStatus(
         result.pushEnabled
-          ? `閉じていても届くPushを登録しました${extraTargets.length > 0 ? ` (${extraTargets.join(' / ')})` : ''}`
-          : '通知設定を保存しました。ブラウザPushは未登録です',
+          ? `閉じていても届く通知を登録しました${extraTargets.length > 0 ? ` (${extraTargets.join(' / ')})` : ''}`
+          : '通知設定を保存しました。スマホ通知は未登録です',
       )
     } catch (error) {
-      showPushActionStatus(`サーバーPush登録に失敗: ${getPushFailureMessage(error)}`)
+      showPushActionStatus(`スマホ通知の登録に失敗: ${getPushFailureMessage(error)}`)
     } finally {
       setPushActionBusy(null)
     }
@@ -2049,11 +2062,11 @@ function App() {
     if (pushActionBusy) return
     try {
       if (!reminderSettings.serverPush) {
-        showPushActionStatus('先にPush登録を完了してください')
+        showPushActionStatus('先にスマホ通知をONにしてください')
         return
       }
       setPushActionBusy('server')
-      showPushActionStatus('サーバー通知を確認中です')
+      showPushActionStatus('テスト通知を確認中です')
       const result = await callAppApi<{ checked: number; sent: number; skipped: number; webPushReady: boolean }>(
         '/api/send-reminders',
         {
@@ -2063,16 +2076,16 @@ function App() {
         },
       )
       if (!result.webPushReady) {
-        showPushActionStatus('サーバーPush鍵が未設定です')
+        showPushActionStatus('スマホ通知の管理者設定が未完了です')
       } else if (result.checked === 0) {
-        showPushActionStatus('登録済みのPush購読が見つかりません。先にPush登録を押してください')
+        showPushActionStatus('スマホ通知の登録が見つかりません。先にスマホ通知をONにしてください')
       } else if (result.sent === 0) {
-        showPushActionStatus(`サーバー確認OK。通知対象はありません (${result.skipped}件確認)`)
+        showPushActionStatus(`テスト確認OK。通知対象はありません (${result.skipped}件確認)`)
       } else {
-        showPushActionStatus(`サーバー通知を送信しました (${result.sent}件)`)
+        showPushActionStatus(`テスト通知を送信しました (${result.sent}件)`)
       }
     } catch (error) {
-      showPushActionStatus(`サーバー通知の送信に失敗: ${getPushFailureMessage(error)}`)
+      showPushActionStatus(`テスト通知に失敗: ${getPushFailureMessage(error)}`)
     } finally {
       setPushActionBusy(null)
     }
@@ -2218,9 +2231,9 @@ function App() {
                 type="button"
                 onClick={openNotificationSetup}
               >
-                <span>通知</span>
-                <strong>{notificationReadinessLabel}</strong>
-                <small>LINE・Push・時刻</small>
+                <span>準備</span>
+                <strong>{setupReadyLabel}</strong>
+                <small>通知・ホーム画面</small>
               </button>
               <button
                 className={alertInsights.length > 0 ? 'routine-step needs-action' : 'routine-step'}
@@ -2240,43 +2253,6 @@ function App() {
                 <strong>{shoppingTodoCount > 0 ? `${shoppingTodoCount}件` : 'OK'}</strong>
                 <small>不足・使い切り</small>
               </button>
-            </div>
-          </div>
-          <div className={`focus-orbit ${firstAttention ? `is-${firstAttention.status}` : 'is-ok'}`}>
-            <span>{notificationSetupNeeded ? '準備状況' : '期限チェック'}</span>
-            <strong>
-              {notificationSetupNeeded
-                ? notificationReadinessLabel
-                : firstAttention
-                  ? formatDaysLeft(firstAttention.daysLeft)
-                  : '準備OK'}
-            </strong>
-            <small>
-              {notificationSetupNeeded
-                ? '通知を整えると毎日の確認が軽くなります'
-                : firstAttention
-                  ? firstAttention.item.name
-                  : `${totalActive}件の在庫を管理中`}
-            </small>
-            <div className="orbit-stack" aria-label="期限の近い食材">
-              {radarInsights.length === 0 ? (
-                <em>在庫なし</em>
-              ) : (
-                radarInsights.map((insight) => (
-                  <button
-                    className={`orbit-chip ${statusCopy[insight.status].className}`}
-                    key={insight.item.id}
-                    type="button"
-                    onClick={() => {
-                      setSearchTerm(insight.item.name)
-                      switchView('inventory')
-                    }}
-                  >
-                    <span>{insight.item.name}</span>
-                    <strong>{formatDaysLeft(insight.daysLeft)}</strong>
-                  </button>
-                ))
-              )}
             </div>
           </div>
           <div className="focus-cta-group">
@@ -2704,6 +2680,26 @@ function App() {
             </div>
           </section>
 
+          <section className="today-next-card" aria-label="次にやること">
+            <div className="next-card-heading">
+              <span>次にやる</span>
+              <strong>{notificationSetupNeeded ? 'まず準備' : '今日の流れ'}</strong>
+            </div>
+            <div className="next-action-list">
+              <button
+                type="button"
+                onClick={notificationSetupNeeded ? openNotificationSetup : () => switchView(nextActionView)}
+              >
+                <span>{nextKitchenActionTitle}</span>
+                <strong>{nextKitchenActionMeta}</strong>
+              </button>
+              <button type="button" onClick={() => switchView(secondaryActionView)}>
+                <span>{secondaryKitchenActionTitle}</span>
+                <strong>{secondaryKitchenActionMeta}</strong>
+              </button>
+            </div>
+          </section>
+
           <section className="rail-section shopping-overview" id="shopping-list">
             <div className="section-heading">
               <ShoppingBasket size={20} />
@@ -2826,12 +2822,9 @@ function App() {
                         </div>
                         <div className="item-quick-facts" aria-label={`${insight.item.name}の保存情報`}>
                           <span>{insight.item.quantity}</span>
-                          <span>残量{insight.item.remainingPercent ?? 100}%</span>
                           <span>{meta.label}</span>
-                        </div>
-                        <div className="item-data-line">
-                          <span className={evidenceSummary.className}>{evidenceSummary.label}</span>
-                          <small>{evidenceSummary.detail}</small>
+                          <span>{insight.item.customLocation ?? meta.defaultLocation}</span>
+                          <span>残量{insight.item.remainingPercent ?? 100}%</span>
                         </div>
                         <div className={`item-life-strip ${status.className}`} aria-label={`期限の近さ ${formatDaysLeft(insight.daysLeft)}`}>
                           <span
@@ -2842,18 +2835,6 @@ function App() {
                             }
                           />
                         </div>
-                        <div className="item-meta">
-                          <span>{insight.deadlineReason}</span>
-                          <span>{insight.item.customLocation ?? meta.defaultLocation}</span>
-                          {insight.item.openedAt ? <span>開封 {formatDate(insight.item.openedAt)}</span> : null}
-                          {insight.item.movedAt ? <span>移動 {formatDate(insight.item.movedAt)}</span> : null}
-                          {insight.item.barcode ? <span>JAN {insight.item.barcode}</span> : null}
-                        </div>
-                        <div className="item-source-line">
-                          <Database size={14} />
-                          <span>{sourceSummary.label}</span>
-                          {sourceSummary.checked ? <small>{sourceSummary.checked}確認</small> : null}
-                        </div>
                       </div>
                       <div className="item-deadline">
                         <strong>{formatDaysLeft(insight.daysLeft)}</strong>
@@ -2861,7 +2842,7 @@ function App() {
                       </div>
                     </div>
                     <details className="item-manage">
-                      <summary>保存場所・残量・操作</summary>
+                      <summary>詳細・操作</summary>
                       <div className="item-controls">
                         <div className="item-storage">
                           <Icon size={17} />
@@ -2893,9 +2874,16 @@ function App() {
                         </div>
                       </div>
                       <div className="item-source-card">
-                        <strong>参照元</strong>
+                        <strong>期限の根拠</strong>
                         <span>{deadlineReasonDetail}</span>
+                        <small className={evidenceSummary.className}>{evidenceSummary.label} / {evidenceSummary.detail}</small>
                         <small>{sourceSummary.note}</small>
+                        <div className="item-detail-grid">
+                          <span>{insight.deadlineReason}</span>
+                          {insight.item.openedAt ? <span>開封 {formatDate(insight.item.openedAt)}</span> : null}
+                          {insight.item.movedAt ? <span>移動 {formatDate(insight.item.movedAt)}</span> : null}
+                          {insight.item.barcode ? <span>JAN {insight.item.barcode}</span> : null}
+                        </div>
                         <div>
                           {sourceLinks.slice(0, 3).map((source) => (
                             <a href={source.url} key={`${insight.item.id}-${source.label}`} rel="noreferrer" target="_blank">
@@ -2958,6 +2946,215 @@ function App() {
       <details className="support-drawer">
         <summary>通知・バックアップ・参照元</summary>
         <section className="utility-grid">
+          <section className="rail-section setup-panel" id="setup-start">
+          <div className="section-heading">
+            <Bell size={20} />
+            <div>
+              <p>はじめる準備</p>
+              <h2>通知とホーム画面</h2>
+            </div>
+          </div>
+          <div className="setup-progress-card">
+            <span>準備 {setupReadyLabel}</span>
+            <strong>{notificationSetupNeeded ? '見落とし防止を先に整えます' : '通知の準備は整っています'}</strong>
+            <p>LINE通知、スマホ通知、確認時刻、ホーム画面追加だけを確認します。</p>
+          </div>
+          <div className="setup-checklist" id="notification-settings" aria-label="通知とホーム画面の準備">
+            <article className={lineNotificationReady ? 'setup-step-card is-done' : 'setup-step-card'}>
+              <div className="setup-step-copy">
+                <MessageCircle aria-hidden="true" size={17} />
+                <div>
+                  <span>LINE通知</span>
+                  <strong>{lineLinkLabel}</strong>
+                  <small>公式アカウントへコードを送ると自動で保存されます</small>
+                </div>
+              </div>
+              <div className="line-link-panel" aria-label="LINE通知の連携">
+                {lineLinkCode ? (
+                  <div className="line-link-code">
+                    <code>{lineLinkCode.code}</code>
+                    <small>有効期限 {formatDateTime(lineLinkCode.expiresAt)}</small>
+                  </div>
+                ) : null}
+                <p className={lineLinkStatus ? 'line-link-status' : 'line-link-status is-empty'} role="status" aria-live="polite">
+                  {lineLinkStatus || 'LINE通知を使う場合は、まず連携コードを作ります'}
+                </p>
+                <div className="line-link-actions">
+                  <button disabled={lineLinkBusy !== null} type="button" onClick={() => void createLineLinkCodeAction()}>
+                    <MessageCircle aria-hidden="true" size={15} />
+                    {lineLinkBusy === 'create' ? '発行中' : 'コード発行'}
+                  </button>
+                  <button disabled={!lineLinkCode} type="button" onClick={() => void copyLineLinkCode()}>
+                    <Copy aria-hidden="true" size={15} />
+                    コピー
+                  </button>
+                  {activeLineOfficialAccountUrl ? (
+                    <a href={activeLineOfficialAccountUrl} rel="noreferrer" target="_blank">
+                      <ExternalLink aria-hidden="true" size={15} />
+                      LINEを開く
+                    </a>
+                  ) : (
+                    <span className="line-link-missing">LINE公式URL未設定</span>
+                  )}
+                  <button disabled={lineLinkBusy !== null} type="button" onClick={() => void refreshLineLinkStatus()}>
+                    <RotateCcw aria-hidden="true" size={15} />
+                    {lineLinkBusy === 'check' ? '確認中' : '連携確認'}
+                  </button>
+                </div>
+                <details className="line-fallback-panel">
+                  <summary>その他の通知先</summary>
+                  <label className="field compact-field">
+                    <span>Webhook URL</span>
+                    <input
+                      autoComplete="off"
+                      inputMode="url"
+                      name="line-webhook-note"
+                      spellCheck={false}
+                      type="url"
+                      value={reminderSettings.webhookUrl}
+                      onChange={(event) =>
+                        setReminderSettings((current) => ({
+                          ...current,
+                          lineMemo: '',
+                          webhookUrl: event.target.value,
+                        }))
+                      }
+                      placeholder="https://example.com/webhook"
+                    />
+                  </label>
+                </details>
+              </div>
+            </article>
+
+            <article className={pushNotificationReady ? 'setup-step-card is-done' : 'setup-step-card'}>
+              <div className="setup-step-copy">
+                <Bell aria-hidden="true" size={17} />
+                <div>
+                  <span>スマホ通知</span>
+                  <strong>{pushNotificationReady ? '登録済み' : pushSetupLabel}</strong>
+                  <small>{pushSetupText}</small>
+                </div>
+              </div>
+              <div className="setup-action-row">
+                <button disabled={pushActionBusy !== null} type="button" onClick={() => void registerServerPush()}>
+                  <Cloud size={16} />
+                  {pushActionBusy === 'register' ? '登録中' : 'スマホ通知をON'}
+                </button>
+                <button disabled={pushActionBusy !== null || !reminderSettings.serverPush} type="button" onClick={() => void sendServerReminderNow()}>
+                  <ExternalLink size={16} />
+                  {pushActionBusy === 'server' ? '確認中' : 'テスト通知'}
+                </button>
+              </div>
+              <p className={pushActionStatus ? 'push-action-status' : 'push-action-status is-empty'} role="status" aria-live="polite">
+                {pushActionStatus || 'スマホ通知の結果をここに表示します'}
+              </p>
+              {notificationBlocked ? (
+                <div className="push-unblock-guide" role="note" aria-label="通知ブロックの解除手順">
+                  <strong>通知ブロックの解除</strong>
+                  <ol>
+                    <li>アドレスバー左のサイト設定を開く</li>
+                    <li>通知を「許可」に変更</li>
+                    <li>ページを再読み込みしてスマホ通知をON</li>
+                  </ol>
+                  <small>ブラウザ権限はアプリから変更できません。</small>
+                </div>
+              ) : null}
+            </article>
+
+            <article className={reminderSettings.enabled ? 'setup-step-card is-done' : 'setup-step-card'}>
+              <div className="setup-step-copy">
+                <CalendarClock aria-hidden="true" size={17} />
+                <div>
+                  <span>確認時刻</span>
+                  <strong>{reminderSettings.enabled ? `毎日 ${reminderSettings.dailyTime}` : '停止中'}</strong>
+                  <small>{reminderTargetCount > 0 ? `${reminderTargetCount}件を通知対象にします` : '対象の食材が出たら通知します'}</small>
+                </div>
+              </div>
+              <div className="setup-time-row">
+                <label className="toggle-row">
+                  <input
+                    checked={reminderSettings.enabled}
+                    name="reminder-enabled"
+                    type="checkbox"
+                    onChange={(event) => void updateReminderEnabled(event.target.checked)}
+                  />
+                  <span>毎日チェック</span>
+                </label>
+                <label className="field compact-field">
+                  <span>時刻</span>
+                  <input
+                    autoComplete="off"
+                    name="daily-reminder-time"
+                    type="time"
+                    value={reminderSettings.dailyTime}
+                    onChange={(event) =>
+                      setReminderSettings((current) => ({ ...current, dailyTime: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+            </article>
+
+            <article className="setup-step-card is-done pwa-guide" id="pwa-guide">
+              <div className="setup-step-copy">
+                <Home aria-hidden="true" size={17} />
+                <div>
+                  <span>ホーム画面</span>
+                  <h3>ホーム画面に追加</h3>
+                  <small>スマホアプリのようにすぐ開けます</small>
+                </div>
+              </div>
+              <div className="pwa-guide-list">
+                <p>
+                  <strong>iPhone</strong>
+                  <span>Safariの共有から「ホーム画面に追加」</span>
+                </p>
+                <p>
+                  <strong>Android</strong>
+                  <span>Chromeのメニューから「アプリをインストール」</span>
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <details className="setup-technical">
+            <summary>詳しい状態</summary>
+            <div className="technical-status-grid" aria-busy={pushActionBusy ? 'true' : undefined} aria-label="期限通知の詳しい状態">
+              <div>
+                <span>通知状態</span>
+                <strong>{getNotificationPermissionLabel(notificationPermission)}</strong>
+              </div>
+              <div>
+                <span>スマホ通知</span>
+                <strong>{reminderSettings.serverPush ? '登録済み' : '未登録'}</strong>
+              </div>
+              <div>
+                <span>通知前提</span>
+                <strong>{pushSetupLabel}</strong>
+              </div>
+              <button type="button" onClick={() => void sendReminder(false)}>
+                <Bell size={16} />
+                今すぐ確認
+              </button>
+            </div>
+            <label className="field compact-field">
+              <span>メール</span>
+              <input
+                autoComplete="off"
+                name="external-reminder-note"
+                value={reminderSettings.emailAddress}
+                onChange={(event) =>
+                  setReminderSettings((current) => ({
+                    ...current,
+                    emailAddress: event.target.value,
+                  }))
+                }
+                placeholder="name@example.com"
+              />
+            </label>
+          </details>
+          </section>
+
           <section className="rail-section">
           <div className="section-heading">
             <ChefHat size={20} />
@@ -2975,190 +3172,6 @@ function App() {
               </div>
             ))}
           </div>
-          </section>
-
-          <section className="rail-section" id="notification-settings">
-          <div className="section-heading">
-            <Bell size={20} />
-            <div>
-              <p>通知</p>
-              <h2>通知の受け取り</h2>
-            </div>
-          </div>
-          <label className="toggle-row">
-            <input
-              checked={reminderSettings.enabled}
-              name="reminder-enabled"
-              type="checkbox"
-              onChange={(event) => void updateReminderEnabled(event.target.checked)}
-            />
-            <span>毎日チェック</span>
-          </label>
-          <div className="reminder-status" aria-busy={pushActionBusy ? 'true' : undefined} aria-label="期限通知の状態">
-            <div>
-              <span>確認タイミング</span>
-              <strong>{reminderSettings.enabled ? `毎日 ${reminderSettings.dailyTime} 以降` : '停止中'}</strong>
-            </div>
-            <div>
-              <span>対象</span>
-              <strong>{reminderTargetCount}件</strong>
-            </div>
-            <div>
-              <span>通知状態</span>
-              <strong>{getNotificationPermissionLabel(notificationPermission)}</strong>
-            </div>
-            <div>
-              <span>サーバーPush</span>
-              <strong>{reminderSettings.serverPush ? '登録済み' : '未登録'}</strong>
-            </div>
-            <div>
-              <span>登録前提</span>
-              <strong>{pushSetupLabel}</strong>
-            </div>
-            <p>{pushSetupText}</p>
-            <p className={pushActionStatus ? 'push-action-status' : 'push-action-status is-empty'} role="status" aria-live="polite">
-              {pushActionStatus || 'Push登録とサーバー確認の結果をここに表示します'}
-            </p>
-            {notificationBlocked ? (
-              <div className="push-unblock-guide" role="note" aria-label="通知ブロックの解除手順">
-                <strong>通知ブロックの解除</strong>
-                <ol>
-                  <li>アドレスバー左のサイト設定を開く</li>
-                  <li>通知を「許可」に変更</li>
-                  <li>ページを再読み込みしてPush登録</li>
-                </ol>
-                <small>ブラウザ権限はアプリから変更できません。</small>
-              </div>
-            ) : null}
-            {!reminderSettings.serverPush ? (
-              <p className="push-action-hint">サーバー確認はPush登録が完了すると使えます。</p>
-            ) : null}
-            <button type="button" onClick={() => void sendReminder(false)}>
-              <Bell size={16} />
-              今すぐ確認
-            </button>
-            <button disabled={pushActionBusy !== null} type="button" onClick={() => void registerServerPush()}>
-              <Cloud size={16} />
-              {pushActionBusy === 'register' ? '登録中' : 'Push登録'}
-            </button>
-            <button disabled={pushActionBusy !== null} type="button" onClick={() => void sendServerReminderNow()}>
-              <ExternalLink size={16} />
-              {pushActionBusy === 'server' ? '確認中' : 'サーバー確認'}
-            </button>
-          </div>
-          <div className="form-row utility-form">
-            <label className="field compact-field">
-              <span>通知時刻</span>
-              <input
-                autoComplete="off"
-                name="daily-reminder-time"
-                type="time"
-                value={reminderSettings.dailyTime}
-                onChange={(event) =>
-                  setReminderSettings((current) => ({ ...current, dailyTime: event.target.value }))
-                }
-              />
-            </label>
-            <label className="field compact-field">
-              <span>メール</span>
-              <input
-                autoComplete="off"
-                name="external-reminder-note"
-                value={reminderSettings.emailAddress}
-                onChange={(event) =>
-                  setReminderSettings((current) => ({
-                    ...current,
-                    emailAddress: event.target.value,
-                  }))
-                }
-                placeholder="name@example.com"
-              />
-            </label>
-          </div>
-          <div className="line-link-panel" aria-label="LINE通知の連携">
-            <div className="line-link-heading">
-              <MessageCircle aria-hidden="true" size={17} />
-              <div>
-                <span>LINE通知</span>
-                <strong>{lineLinkLabel}</strong>
-              </div>
-            </div>
-            <p>コードをLINE公式アカウントに送ると、通知先を自動で保存します。</p>
-            {lineLinkCode ? (
-              <div className="line-link-code">
-                <code>{lineLinkCode.code}</code>
-                <small>有効期限 {formatDateTime(lineLinkCode.expiresAt)}</small>
-              </div>
-            ) : null}
-            <p className={lineLinkStatus ? 'line-link-status' : 'line-link-status is-empty'} role="status" aria-live="polite">
-              {lineLinkStatus || 'LINE通知を使う場合は、まず連携コードを作ります'}
-            </p>
-            <div className="line-link-actions">
-              <button disabled={lineLinkBusy !== null} type="button" onClick={() => void createLineLinkCodeAction()}>
-                <MessageCircle aria-hidden="true" size={15} />
-                {lineLinkBusy === 'create' ? '発行中' : 'コード発行'}
-              </button>
-              <button disabled={!lineLinkCode} type="button" onClick={() => void copyLineLinkCode()}>
-                <Copy aria-hidden="true" size={15} />
-                コピー
-              </button>
-              {activeLineOfficialAccountUrl ? (
-                <a href={activeLineOfficialAccountUrl} rel="noreferrer" target="_blank">
-                  <ExternalLink aria-hidden="true" size={15} />
-                  LINEを開く
-                </a>
-              ) : (
-                <span className="line-link-missing">LINE公式URL未設定</span>
-              )}
-              <button disabled={lineLinkBusy !== null} type="button" onClick={() => void refreshLineLinkStatus()}>
-                <RotateCcw aria-hidden="true" size={15} />
-                {lineLinkBusy === 'check' ? '確認中' : '連携確認'}
-              </button>
-            </div>
-            <details className="line-fallback-panel">
-              <summary>Webhook URLを直接使う</summary>
-              <label className="field compact-field">
-                <span>Webhook URL</span>
-                <input
-                  autoComplete="off"
-                  inputMode="url"
-                  name="line-webhook-note"
-                  spellCheck={false}
-                  type="url"
-                  value={reminderSettings.webhookUrl}
-                  onChange={(event) =>
-                    setReminderSettings((current) => ({
-                      ...current,
-                      lineMemo: '',
-                      webhookUrl: event.target.value,
-                    }))
-                  }
-                  placeholder="https://example.com/webhook"
-                />
-              </label>
-            </details>
-          </div>
-          </section>
-
-          <section className="rail-section pwa-guide" id="pwa-guide">
-          <div className="section-heading">
-            <Share2 size={20} />
-            <div>
-              <p>PWA</p>
-              <h2>ホーム画面に追加</h2>
-            </div>
-          </div>
-          <div className="pwa-guide-list">
-            <p>
-              <strong>iPhone</strong>
-              <span>Safariの共有から「ホーム画面に追加」</span>
-            </p>
-            <p>
-              <strong>Android</strong>
-              <span>Chromeのメニューから「アプリをインストール」</span>
-            </p>
-          </div>
-          <p className="safety-note">追加後はアプリのように開けます。通知は別途、ブラウザの許可とPush登録が必要です。</p>
           </section>
 
           <section className="rail-section">
@@ -3298,26 +3311,26 @@ function App() {
             </div>
             <div className="tour-layout">
               <div className="tour-step-rail" aria-label="ツアーのステップ">
-                {tourSteps.map((step, index) => {
-                  const StepIcon = step.icon
-                  return (
+                <div className="tour-progress-current">
+                  <span>
+                    STEP {tourStepData.step}/{tourSteps.length}
+                  </span>
+                  <strong>{tourStepData.label}</strong>
+                </div>
+                <div className="tour-progress-dots" aria-label="ステップを選ぶ">
+                  {tourSteps.map((step, index) => (
                     <button
                       aria-current={index === tourStep ? 'step' : undefined}
-                      className={index === tourStep ? 'tour-step-button is-current' : 'tour-step-button'}
+                      aria-label={step.label}
+                      className={index === tourStep ? 'tour-dot-button is-current' : 'tour-dot-button'}
                       key={step.label}
                       type="button"
                       onClick={() => setTourStep(index)}
                     >
-                      <span className="tour-step-icon">
-                        <StepIcon size={17} />
-                      </span>
-                      <span className="tour-step-text">
-                        <span>STEP {step.step}</span>
-                        <strong>{step.label}</strong>
-                      </span>
+                      {step.step}
                     </button>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
               <div className="tour-copy">
                 <div className="tour-copy-top">

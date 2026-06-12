@@ -32,9 +32,9 @@ test('在庫画面で通知設定を開ける', async ({ page }) => {
   await drawer.locator(':scope > summary').click()
 
   await expect(drawer).toHaveAttribute('open', '')
-  await expect(drawer.getByText('登録前提')).toBeVisible()
-  await expect(drawer.getByRole('button', { name: 'Push登録' })).toBeVisible()
-  await expect(drawer.getByRole('button', { name: 'サーバー確認' })).toBeVisible()
+  await expect(drawer.getByText('はじめる準備')).toBeVisible()
+  await expect(drawer.getByRole('button', { name: 'スマホ通知をON' })).toBeVisible()
+  await expect(drawer.getByRole('button', { name: 'テスト通知' })).toBeVisible()
   await expect(drawer.getByText('LINE通知', { exact: true })).toBeVisible()
   await expect(drawer.getByRole('button', { name: 'コード発行' })).toBeVisible()
 })
@@ -48,18 +48,18 @@ test('初回の通知設定CTAから通知設定へ進める', async ({ page }) 
   await expect(drawer.getByText('LINE通知', { exact: true })).toBeVisible()
 })
 
-test('ツアーモーダルからPWA案内へ進める', async ({ page }) => {
+test('ツアーモーダルから準備とPWA案内へ進める', async ({ page }) => {
   await page.getByLabel('使い方ツアーを開く').click()
 
-  await expect(page.getByRole('button', { name: /PWA/ })).toBeVisible()
-  await page.getByRole('button', { name: /PWA/ }).click()
-  await expect(page.getByRole('heading', { name: 'スマホのホーム画面から開く' })).toBeVisible()
-  await expect(page.getByText('ホーム画面追加・全画面表示・通知')).toBeVisible()
+  const dialog = page.getByRole('dialog', { name: '最初の3分で整える' })
+  await expect(dialog.getByRole('button', { name: '準備', exact: true })).toBeVisible()
+  await expect(dialog.getByText('LINE通知・スマホ通知・ホーム画面')).toBeVisible()
 
-  await page.getByRole('button', { name: 'PWA案内へ移動' }).click()
+  await dialog.getByRole('button', { name: '準備を開く' }).click()
 
   const drawer = page.locator('details.support-drawer')
   await expect(drawer).toHaveAttribute('open', '')
+  await expect(page.locator('#setup-start')).toBeVisible()
   await expect(page.locator('#pwa-guide')).toBeVisible()
   await expect(drawer.getByRole('heading', { name: 'ホーム画面に追加' })).toBeVisible()
 })
