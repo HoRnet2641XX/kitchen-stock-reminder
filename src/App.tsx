@@ -25,7 +25,6 @@ import {
   RotateCcw,
   Save,
   Search,
-  Settings,
   Share2,
   ShoppingBasket,
   Snowflake,
@@ -1290,9 +1289,6 @@ function App() {
   const recipeIdeas = getRecipeIdeas(insights)
   const firstAttention = alertInsights[0]
   const radarInsights = activeInsights.slice(0, 4)
-  const fridgeCount = activeInsights.filter((insight) => insight.item.storage === 'fridge').length
-  const freezerCount = activeInsights.filter((insight) => insight.item.storage === 'freezer').length
-  const lowStockCount = activeInsights.filter((insight) => (insight.item.remainingPercent ?? 100) <= 25).length
   const shoppingTodoCount = visibleShoppingItems.length
   const reminderTargetCount = alertInsights.filter((insight) => insight.status !== 'unknown').length
   const localDevApiMissing = isLocalDevApiBaseMissing()
@@ -1332,18 +1328,21 @@ function App() {
     : lineLinkCode
       ? 'コード発行済み'
       : '未連携'
-  const focusKicker = notificationSetupNeeded ? 'はじめに' : '今日の食材'
+  const notificationReadyCount =
+    (lineNotificationReady ? 1 : 0) + (pushNotificationReady ? 1 : 0) + (reminderSettings.enabled ? 1 : 0)
+  const notificationReadinessLabel = `${notificationReadyCount}/3`
+  const focusKicker = notificationSetupNeeded ? '初回の3分' : '今日の台所'
   const focusTitle = notificationSetupNeeded
-    ? '通知を先に設定'
+    ? '期限通知を先に整える'
     : firstAttention
-      ? `${firstAttention.item.name}を確認`
-      : 'しまう前に登録'
+      ? `${firstAttention.item.name}から使う`
+      : '買ったら、しまう前に登録'
   const focusSubtext = notificationSetupNeeded
-    ? '期限2日前にPushとLINEで受け取る'
+    ? 'LINEとPushを済ませると、期限2日前と当日に見落としを防げます。'
     : firstAttention
-      ? formatDaysLeft(firstAttention.daysLeft)
-      : '買った食材を追加'
-  const primaryActionLabel = notificationSetupNeeded ? '通知を設定' : nextActionLabel
+      ? `${formatDaysLeft(firstAttention.daysLeft)}。使う、確認する、買い足すをここで判断します。`
+      : '冷蔵・冷凍・常温の保存目安を見ながら、食材を一つずつ残します。'
+  const primaryActionLabel = notificationSetupNeeded ? '通知を整える' : nextActionLabel
 
   const refreshLineLinkStatus = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -2162,7 +2161,7 @@ function App() {
           <div className="brand-copy">
             <p>自炊食材の期限管理</p>
             <h1>食材期限帳</h1>
-            <span className="brand-subtitle">冷蔵・冷凍の食材を期限と残量で管理</span>
+            <span className="brand-subtitle">何を使う・何を買う・いつ通知するか</span>
             <span className="cloud-sync-pill">
               <Cloud size={13} />
               {cloudSyncStatus}
@@ -2198,38 +2197,52 @@ function App() {
             <p>今日の判断</p>
             <h2>{focusTitle}</h2>
             <span>{focusSubtext}</span>
-            <div className="focus-mini-stats" aria-label="在庫の状態">
-              {notificationSetupNeeded ? (
-                <>
-                  <span>
-                    LINE <strong>{lineNotificationReady ? '済' : '未'}</strong>
-                  </span>
-                  <span>
-                    Push <strong>{pushNotificationReady ? '済' : '未'}</strong>
-                  </span>
-                  <span>
-                    対象 <strong>{reminderTargetCount}</strong>
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span>
-                    冷蔵 <strong>{fridgeCount}</strong>
-                  </span>
-                  <span>
-                    冷凍 <strong>{freezerCount}</strong>
-                  </span>
-                  <span>
-                    残量少 <strong>{lowStockCount}</strong>
-                  </span>
-                </>
-              )}
+            <div className="daily-routine" aria-label="最初に見る順番">
+              <button
+                className={notificationSetupNeeded ? 'routine-step needs-action' : 'routine-step is-done'}
+                type="button"
+                onClick={openNotificationSetup}
+              >
+                <span>通知</span>
+                <strong>{notificationReadinessLabel}</strong>
+                <small>LINE・Push・時刻</small>
+              </button>
+              <button
+                className={alertInsights.length > 0 ? 'routine-step needs-action' : 'routine-step'}
+                type="button"
+                onClick={() => switchView('today')}
+              >
+                <span>今日</span>
+                <strong>{alertInsights.length > 0 ? `${alertInsights.length}件` : 'なし'}</strong>
+                <small>{firstAttention ? firstAttention.item.name : '期限は落ち着いています'}</small>
+              </button>
+              <button
+                className={shoppingTodoCount > 0 ? 'routine-step needs-action' : 'routine-step'}
+                type="button"
+                onClick={() => switchView('shopping')}
+              >
+                <span>買う</span>
+                <strong>{shoppingTodoCount > 0 ? `${shoppingTodoCount}件` : 'OK'}</strong>
+                <small>不足・使い切り</small>
+              </button>
             </div>
           </div>
           <div className={`focus-orbit ${firstAttention ? `is-${firstAttention.status}` : 'is-ok'}`}>
-            <span>期限チェック</span>
-            <strong>{firstAttention ? formatDaysLeft(firstAttention.daysLeft) : '準備OK'}</strong>
-            <small>{firstAttention ? firstAttention.item.name : `${totalActive}件の在庫を管理中`}</small>
+            <span>{notificationSetupNeeded ? '準備状況' : '期限チェック'}</span>
+            <strong>
+              {notificationSetupNeeded
+                ? notificationReadinessLabel
+                : firstAttention
+                  ? formatDaysLeft(firstAttention.daysLeft)
+                  : '準備OK'}
+            </strong>
+            <small>
+              {notificationSetupNeeded
+                ? '通知を整えると毎日の確認が軽くなります'
+                : firstAttention
+                  ? firstAttention.item.name
+                  : `${totalActive}件の在庫を管理中`}
+            </small>
             <div className="orbit-stack" aria-label="期限の近い食材">
               {radarInsights.length === 0 ? (
                 <em>在庫なし</em>
@@ -2264,34 +2277,6 @@ function App() {
             </button>
           </div>
         </div>
-        {notificationSetupNeeded ? (
-          <section className="notification-setup-panel" aria-label="通知の初期設定">
-            <div>
-              <span>最初にここだけ</span>
-              <strong>期限に気づく準備</strong>
-            </div>
-            <ul>
-              <li className={lineNotificationReady ? 'is-done' : ''}>
-                <MessageCircle aria-hidden="true" size={15} />
-                <span>LINE</span>
-                <strong>{lineNotificationReady ? '連携済み' : 'コード発行'}</strong>
-              </li>
-              <li className={pushNotificationReady ? 'is-done' : ''}>
-                <Cloud aria-hidden="true" size={15} />
-                <span>Push</span>
-                <strong>{pushNotificationReady ? '登録済み' : '未登録'}</strong>
-              </li>
-              <li className={reminderSettings.enabled ? 'is-done' : ''}>
-                <Bell aria-hidden="true" size={15} />
-                <span>時刻</span>
-                <strong>{reminderSettings.dailyTime}</strong>
-              </li>
-            </ul>
-            <button type="button" onClick={openNotificationSetup}>
-              通知設定を開く
-            </button>
-          </section>
-        ) : null}
         <nav className="focus-actions" aria-label="主な操作">
           <button
             aria-current={activeView === 'today' ? 'page' : undefined}
@@ -2347,8 +2332,8 @@ function App() {
             <div className="section-heading">
               <PackagePlus size={20} />
               <div>
-                <p>3 登録</p>
-                <h2>しまう前に登録</h2>
+                <p>しまう</p>
+                <h2>買った食材を追加</h2>
               </div>
             </div>
 
@@ -2672,8 +2657,8 @@ function App() {
             <div className="section-heading">
               <AlertTriangle size={20} />
               <div>
-                <p>1 確認</p>
-                <h2>今日の判断</h2>
+                <p>開いたら最初</p>
+                <h2>今日使う食材</h2>
               </div>
             </div>
             <div className="alert-list">
@@ -2708,8 +2693,8 @@ function App() {
             <div className="section-heading">
               <ShoppingBasket size={20} />
               <div>
-                <p>2 買い物</p>
-                <h2>買うもの</h2>
+                <p>不足</p>
+                <h2>買い足すもの</h2>
               </div>
             </div>
             <div className="shopping-input">
@@ -2757,8 +2742,8 @@ function App() {
             <div className="section-heading">
               <ClipboardList size={20} />
               <div>
-                <p>4 在庫</p>
-                <h2>在庫リスト</h2>
+                <p>冷蔵庫・冷凍庫</p>
+                <h2>在庫</h2>
               </div>
             </div>
             <label className="search-box">
@@ -2956,7 +2941,7 @@ function App() {
       </section>
 
       <details className="support-drawer">
-        <summary>設定・バックアップ・参照元</summary>
+        <summary>通知・バックアップ・参照元</summary>
         <section className="utility-grid">
           <section className="rail-section">
           <div className="section-heading">
@@ -2979,10 +2964,10 @@ function App() {
 
           <section className="rail-section" id="notification-settings">
           <div className="section-heading">
-            <Settings size={20} />
+            <Bell size={20} />
             <div>
               <p>通知</p>
-              <h2>通知設定</h2>
+              <h2>通知の受け取り</h2>
             </div>
           </div>
           <label className="toggle-row">
@@ -3269,7 +3254,7 @@ function App() {
             <div className="tour-header">
               <div>
                 <span className="tour-kicker">食材期限帳の使い方</span>
-                <h2 id="tour-title">迷ったらこの順番で見る</h2>
+                <h2 id="tour-title">最初の3分で整える</h2>
               </div>
               <button className="tour-close" type="button" onClick={closeTour} aria-label="ツアーを閉じる">
                 ×

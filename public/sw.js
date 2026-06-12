@@ -1,4 +1,4 @@
-const cacheName = 'kitchen-stock-reminder-v3'
+const cacheName = 'kitchen-stock-reminder-v4'
 const appShell = ['/', '/manifest.webmanifest', '/favicon.svg', '/icons.svg']
 
 self.addEventListener('install', (event) => {
@@ -25,9 +25,37 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url)
   if (url.pathname.startsWith('/api/')) return
+  if (
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/@vite') ||
+    url.pathname.includes('/node_modules/')
+  ) {
+    event.respondWith(fetch(request))
+    return
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(() => caches.match('/')))
+    return
+  }
+
+  if (
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'worker' ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css')
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (!response || response.status !== 200 || response.type === 'opaque') return response
+          const clone = response.clone()
+          caches.open(cacheName).then((cache) => cache.put(request, clone))
+          return response
+        })
+        .catch(() => caches.match(request)),
+    )
     return
   }
 

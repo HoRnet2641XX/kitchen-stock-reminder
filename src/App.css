@@ -6162,3 +6162,655 @@ body::before {
 .status-dot {
   font-weight: 700;
 }
+
+/* Product redesign: mobile kitchen note, clearer first action, less generic card UI. */
+:root {
+  --app-width: 430px;
+  --paper: oklch(99.1% 0.008 101);
+  --paper-soft: oklch(97.8% 0.018 101);
+  --paper-wash: oklch(95.5% 0.034 105);
+  --line-calm: oklch(87.8% 0.018 101);
+  --line-soft: oklch(91.5% 0.012 101);
+  --leaf-calm: oklch(39% 0.066 149);
+  --leaf-soft: oklch(94.6% 0.036 134);
+  --karashi-soft: oklch(95.5% 0.052 92);
+  --shoyu-soft: oklch(56% 0.058 58);
+}
+
+html {
+  background: oklch(95.4% 0.034 103);
+}
+
+body {
+  background:
+    linear-gradient(180deg, oklch(97.2% 0.034 104), oklch(94.5% 0.04 105)),
+    oklch(95.4% 0.034 103);
+}
+
+body::before {
+  opacity: 0.18;
+}
+
+.app-shell {
+  margin-inline: auto;
+  max-width: var(--app-width);
+  min-height: 100svh;
+  padding: 12px 12px 94px;
+}
+
+.app-header,
+.daily-focus,
+.top-grid,
+.inventory-area,
+.utility-grid,
+.support-drawer {
+  max-width: 100%;
+}
+
+.app-header {
+  align-items: center;
+  background: oklch(99% 0.007 101 / 0.86);
+  border: 1px solid oklch(89% 0.014 101 / 0.72);
+  border-radius: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+
+.brand-block {
+  min-width: 0;
+}
+
+.brand-mark {
+  background: var(--leaf-calm);
+  border-radius: 8px;
+  box-shadow: inset 0 -8px 18px oklch(24% 0.044 148 / 0.18);
+  height: 40px;
+  width: 40px;
+}
+
+.brand-bowl-icon {
+  height: 30px;
+  width: 30px;
+}
+
+.brand-block p {
+  color: oklch(45% 0.034 84);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.brand-block h1 {
+  color: oklch(29% 0.03 78);
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.brand-subtitle {
+  color: oklch(45% 0.026 84);
+  font-size: 11px;
+}
+
+.cloud-sync-pill {
+  background: transparent;
+  border: 0;
+  color: oklch(40% 0.055 148);
+  font-size: 10px;
+  gap: 3px;
+  margin-top: 2px;
+  padding: 0;
+}
+
+.header-actions {
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.header-actions .ghost-button {
+  background: var(--paper);
+  border: 1px solid var(--line-calm);
+  border-radius: 8px;
+  color: oklch(36% 0.028 78);
+  min-height: 34px;
+  padding: 0;
+  width: 34px;
+}
+
+.daily-focus {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+  margin-bottom: 10px;
+}
+
+.focus-summary {
+  background:
+    linear-gradient(180deg, oklch(99.2% 0.009 101), oklch(98% 0.018 101));
+  border: 1px solid var(--line-calm);
+  border-left: 0;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px oklch(35% 0.03 86 / 0.07);
+  gap: 10px;
+  grid-template-columns: 1fr;
+  padding: 12px;
+}
+
+.focus-copy {
+  gap: 7px;
+}
+
+.focus-kicker {
+  color: var(--leaf-calm);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.focus-summary p {
+  display: none;
+}
+
+.focus-summary h2 {
+  color: oklch(28% 0.031 76);
+  font-size: 20px;
+  font-weight: 780;
+  line-height: 1.32;
+  text-wrap: balance;
+}
+
+.focus-summary span {
+  color: oklch(42% 0.025 82);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.daily-routine {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 2px;
+}
+
+.routine-step {
+  background: oklch(99.2% 0.006 101);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  color: oklch(35% 0.03 78);
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  min-height: 66px;
+  padding: 7px 6px;
+  text-align: left;
+}
+
+.routine-step span,
+.routine-step small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routine-step span {
+  color: oklch(45% 0.032 84);
+  font-size: 10px;
+  font-weight: 780;
+}
+
+.routine-step strong {
+  color: oklch(29% 0.031 76);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.routine-step small {
+  color: oklch(48% 0.025 84);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.routine-step.needs-action {
+  background: var(--karashi-soft);
+  border-color: oklch(84% 0.075 91 / 0.62);
+}
+
+.routine-step.is-done {
+  background: var(--leaf-soft);
+  border-color: oklch(81% 0.044 135 / 0.72);
+}
+
+.focus-orbit {
+  display: none;
+}
+
+.focus-cta-group {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 0;
+  width: 100%;
+}
+
+.focus-primary-action,
+.focus-secondary-action {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 760;
+  min-height: 38px;
+  padding-inline: 10px;
+}
+
+.focus-primary-action {
+  background: var(--leaf-calm);
+  box-shadow: none;
+  color: oklch(99% 0.008 101);
+}
+
+.focus-secondary-action {
+  background: oklch(99.2% 0.006 101);
+  border: 1px solid var(--line-calm);
+  color: oklch(35% 0.029 78);
+  display: inline-flex;
+}
+
+.focus-actions {
+  background: oklch(99.1% 0.006 101 / 0.98);
+  border: 1px solid oklch(86% 0.018 101);
+  border-radius: 8px;
+  bottom: 10px;
+  box-shadow: 0 10px 28px oklch(31% 0.026 84 / 0.16);
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  left: 50%;
+  padding: 4px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 20px), 406px);
+  z-index: 16;
+}
+
+.focus-actions button {
+  border-radius: 7px;
+  min-height: 52px;
+  padding: 4px 2px;
+}
+
+.focus-actions button.is-current {
+  background: var(--leaf-soft);
+  box-shadow: inset 0 0 0 1px oklch(80% 0.046 135);
+  color: var(--leaf-calm);
+  transform: none;
+}
+
+.focus-actions span {
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.focus-actions strong {
+  background: transparent;
+  border: 0;
+  color: var(--shoyu-soft);
+  font-size: 11px;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  right: 7px;
+  top: 4px;
+}
+
+.top-grid,
+.inventory-area {
+  gap: 9px;
+}
+
+.entry-panel,
+.today-card,
+.rail-section,
+.inventory-list,
+.support-drawer {
+  background: var(--paper);
+  border: 1px solid var(--line-calm);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.entry-panel,
+.today-card,
+.rail-section {
+  padding: 12px;
+}
+
+.section-heading {
+  gap: 8px;
+}
+
+.section-heading > svg {
+  background: var(--leaf-soft);
+  border-radius: 7px;
+  color: var(--leaf-calm);
+  height: 28px;
+  padding: 6px;
+  width: 28px;
+}
+
+.section-heading p {
+  color: oklch(47% 0.034 84);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.section-heading h2 {
+  color: oklch(29% 0.031 76);
+  font-size: 15px;
+  font-weight: 780;
+}
+
+.field input,
+.field select,
+.search-box,
+.shopping-input input,
+.item-storage select,
+.account-sync-form input {
+  background: oklch(99.4% 0.005 101);
+  border: 1px solid oklch(84.5% 0.015 101);
+  border-radius: 7px;
+  min-height: 38px;
+}
+
+.input-with-action button,
+.primary-button,
+.shopping-input button {
+  background: var(--leaf-calm);
+  border-radius: 7px;
+  color: oklch(99% 0.008 101);
+}
+
+.storage-picker button,
+.filter-tabs button,
+.remaining-buttons button {
+  border-radius: 999px;
+  min-height: 32px;
+}
+
+.storage-picker button.is-selected,
+.filter-tabs button.is-selected,
+.remaining-buttons button.is-selected {
+  background: var(--leaf-soft);
+  border-color: oklch(78% 0.05 134);
+  color: var(--leaf-calm);
+}
+
+.today-panel {
+  gap: 9px;
+}
+
+.alert-list,
+.shopping-list,
+.recipe-list {
+  gap: 5px;
+}
+
+.quiet-text {
+  color: oklch(45% 0.025 84);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.expiry-alert {
+  background: var(--karashi-soft);
+  border: 1px solid oklch(82% 0.078 90 / 0.62);
+  border-radius: 8px;
+  color: oklch(36% 0.048 64);
+}
+
+.alert-item,
+.shopping-row {
+  border-color: var(--line-soft);
+  min-height: 38px;
+}
+
+.inventory-area {
+  background: var(--paper);
+  border: 1px solid var(--line-calm);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.inventory-area .inventory-list {
+  background: transparent;
+  border: 0;
+}
+
+.list-toolbar {
+  gap: 8px;
+}
+
+.inventory-row {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 0;
+}
+
+.inventory-row:last-child {
+  border-bottom: 0;
+}
+
+.inventory-row:hover {
+  background: transparent;
+}
+
+.item-summary-line {
+  gap: 9px;
+  grid-template-columns: 40px minmax(0, 1fr) 68px;
+}
+
+.item-thumb {
+  background: var(--leaf-soft);
+  border: 1px solid oklch(82% 0.04 134);
+  border-radius: 8px;
+  color: var(--leaf-calm);
+  min-height: 40px;
+  width: 40px;
+}
+
+.item-thumb small {
+  color: oklch(42% 0.05 148);
+}
+
+.item-title-line {
+  align-items: center;
+  gap: 5px;
+}
+
+.item-main h3 {
+  color: oklch(29% 0.031 76);
+  font-size: 15px;
+  font-weight: 780;
+}
+
+.item-quick-facts,
+.item-meta,
+.item-data-line,
+.item-source-line {
+  color: oklch(45% 0.024 84);
+}
+
+.status-dot {
+  font-size: 10px;
+  padding: 0;
+}
+
+.item-deadline {
+  background: oklch(98.6% 0.012 101);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  min-height: 50px;
+  min-width: 66px;
+}
+
+.item-deadline strong {
+  color: oklch(30% 0.031 76);
+  font-size: 15px;
+}
+
+.item-deadline span {
+  color: oklch(46% 0.025 84);
+  font-size: 10px;
+}
+
+.item-life-strip {
+  background: oklch(89% 0.016 101);
+  border-radius: 999px;
+  height: 3px;
+}
+
+.item-life-strip span {
+  background: var(--leaf-calm);
+}
+
+.item-life-strip.status-today span,
+.item-life-strip.status-expired span {
+  background: oklch(50% 0.12 38);
+}
+
+.item-life-strip.status-soon span,
+.item-life-strip.status-low span {
+  background: oklch(57% 0.088 72);
+}
+
+.item-manage summary,
+.advanced-details summary,
+.support-drawer > summary {
+  border-radius: 7px;
+}
+
+.support-drawer {
+  overflow: hidden;
+}
+
+.support-drawer > summary {
+  background: var(--paper);
+  color: var(--leaf-calm);
+  font-size: 12px;
+  min-height: 40px;
+}
+
+.support-drawer .utility-grid {
+  background: oklch(98.8% 0.008 101);
+  padding: 9px;
+}
+
+.reminder-status,
+.line-link-panel,
+.account-sync-panel,
+.cloud-danger-zone,
+.deadline-preview,
+.research-strip,
+.advanced-details,
+.item-source-card,
+.push-unblock-guide,
+.push-action-status,
+.push-action-hint {
+  background: var(--paper-soft);
+  border-color: var(--line-calm);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.line-link-actions button,
+.line-link-actions a,
+.reminder-status button,
+.sync-actions button,
+.sync-actions label,
+.legal-links button,
+.account-sync-form button,
+.cloud-danger-zone button,
+.item-actions button,
+.item-actions a {
+  border-radius: 7px;
+}
+
+.tour-dialog,
+.legal-dialog {
+  border-radius: 8px;
+  max-width: min(390px, calc(100vw - 24px));
+}
+
+.tour-header h2,
+.tour-copy h3 {
+  color: oklch(29% 0.031 76);
+}
+
+@media (min-width: 720px) {
+  .app-shell {
+    padding-top: 18px;
+  }
+}
+
+@media (max-width: 360px) {
+  .daily-routine {
+    grid-template-columns: 1fr;
+  }
+
+  .routine-step {
+    min-height: 48px;
+  }
+
+  .focus-cta-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Inventory readability patch: prioritize the food name over decorative thumbnails. */
+.inventory-area .item-summary-line {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 76px;
+}
+
+.inventory-area .item-thumb {
+  display: none;
+}
+
+.inventory-area .item-title-line {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inventory-area .item-main h3 {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.inventory-area .status-dot {
+  line-height: 1.2;
+}
+
+.inventory-area .item-deadline {
+  align-self: start;
+  justify-self: end;
+  width: 76px;
+}
+
+.reminder-status .push-unblock-guide {
+  align-items: start;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.reminder-status .push-unblock-guide strong {
+  text-align: left;
+}
+
+.reminder-status .push-unblock-guide li {
+  align-items: start;
+}

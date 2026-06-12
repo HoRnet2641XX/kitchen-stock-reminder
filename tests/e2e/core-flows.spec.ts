@@ -40,7 +40,7 @@ test('在庫画面で通知設定を開ける', async ({ page }) => {
 })
 
 test('初回の通知設定CTAから通知設定へ進める', async ({ page }) => {
-  await page.getByRole('button', { name: '通知を設定' }).click()
+  await page.getByRole('button', { name: '通知を整える' }).click()
 
   const drawer = page.locator('details.support-drawer')
   await expect(drawer).toHaveAttribute('open', '')
