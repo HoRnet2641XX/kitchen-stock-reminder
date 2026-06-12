@@ -294,13 +294,24 @@ const researchTargets = [
 
 const tourSteps = [
   {
+    actionLabel: '通知設定へ移動',
+    icon: Bell,
+    label: '通知',
+    preview: 'LINE連携・Push登録・確認時刻',
+    step: '1',
+    target: '#notification-settings',
+    title: 'まず通知を受け取れる状態にする',
+    view: 'inventory' as AppView,
+    body: '期限2日前や今日までの食材に気づけるよう、LINE通知とブラウザPushを先に設定します。',
+  },
+  {
     actionLabel: '確認へ移動',
     icon: AlertTriangle,
     label: '確認',
     preview: '期限超過・今日まで・残量少',
-    step: '1',
+    step: '2',
     target: '#today-check',
-    title: 'まず期限が近い食材を見る',
+    title: '期限が近い食材を見る',
     view: 'today' as AppView,
     body: '開いたら最初に見る場所です。今日動くべき食材だけに絞って、使うか、期限を確認します。',
   },
@@ -309,7 +320,7 @@ const tourSteps = [
     icon: ShoppingBasket,
     label: '買い物',
     preview: '不足・使い切り・残量少',
-    step: '2',
+    step: '3',
     target: '#shopping-list',
     title: '足りない食材を買い物へ',
     view: 'shopping' as AppView,
@@ -320,7 +331,7 @@ const tourSteps = [
     icon: PackagePlus,
     label: '登録',
     preview: '食材名・保存場所・包装期限',
-    step: '3',
+    step: '4',
     target: '#add-food',
     title: '買った食材を登録する',
     view: 'add' as AppView,
@@ -331,7 +342,7 @@ const tourSteps = [
     icon: ClipboardList,
     label: '在庫',
     preview: '保存場所・残量・使い切り',
-    step: '4',
+    step: '5',
     target: '#inventory-list',
     title: '残量と保存場所を更新する',
     view: 'inventory' as AppView,
@@ -1311,6 +1322,9 @@ function App() {
   const secondaryActionLabel = shoppingTodoCount > 0 ? '買い物を見る' : '在庫を見る'
   const tourStepData = tourSteps[tourStep] ?? tourSteps[0]
   const activeLineOfficialAccountUrl = lineLinkCode?.lineOfficialAccountUrl || lineOfficialAccountUrl
+  const lineNotificationReady = lineLinked || Boolean(reminderSettings.webhookUrl)
+  const pushNotificationReady = reminderSettings.serverPush
+  const notificationSetupNeeded = !lineNotificationReady || !pushNotificationReady
   const lineLinkLabel = lineLinked
     ? lineDisplayName
       ? `${lineDisplayName} と連携済み`
@@ -1318,6 +1332,18 @@ function App() {
     : lineLinkCode
       ? 'コード発行済み'
       : '未連携'
+  const focusKicker = notificationSetupNeeded ? 'はじめに' : '今日の食材'
+  const focusTitle = notificationSetupNeeded
+    ? '通知を先に設定'
+    : firstAttention
+      ? `${firstAttention.item.name}を確認`
+      : 'しまう前に登録'
+  const focusSubtext = notificationSetupNeeded
+    ? '期限2日前にPushとLINEで受け取る'
+    : firstAttention
+      ? formatDaysLeft(firstAttention.daysLeft)
+      : '買った食材を追加'
+  const primaryActionLabel = notificationSetupNeeded ? '通知を設定' : nextActionLabel
 
   const refreshLineLinkStatus = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -1412,6 +1438,16 @@ function App() {
     window.history.replaceState(null, '', viewHash[view])
   }
 
+  function openNotificationSetup() {
+    switchView('inventory')
+    window.setTimeout(() => {
+      const drawer = document.querySelector<HTMLDetailsElement>('.support-drawer')
+      if (drawer) drawer.open = true
+      const target = document.querySelector<HTMLElement>('#notification-settings')
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
   function openTour() {
     setTourStep(0)
     setTourOpen(true)
@@ -1436,6 +1472,11 @@ function App() {
   }
 
   function goToTourTarget() {
+    if (tourStepData.target === '#notification-settings') {
+      closeTour()
+      openNotificationSetup()
+      return
+    }
     switchView(tourStepData.view)
     closeTour()
   }
@@ -2153,20 +2194,36 @@ function App() {
       <section className="daily-focus" aria-label="食材期限の今日の確認">
         <div className="focus-summary">
           <div className="focus-copy">
-            <span className="focus-kicker">今日の食材</span>
+            <span className="focus-kicker">{focusKicker}</span>
             <p>今日の判断</p>
-            <h2>{firstAttention ? `${firstAttention.item.name}を確認` : 'しまう前に登録'}</h2>
-            <span>{firstAttention ? formatDaysLeft(firstAttention.daysLeft) : '買った食材を追加'}</span>
+            <h2>{focusTitle}</h2>
+            <span>{focusSubtext}</span>
             <div className="focus-mini-stats" aria-label="在庫の状態">
-              <span>
-                冷蔵 <strong>{fridgeCount}</strong>
-              </span>
-              <span>
-                冷凍 <strong>{freezerCount}</strong>
-              </span>
-              <span>
-                残量少 <strong>{lowStockCount}</strong>
-              </span>
+              {notificationSetupNeeded ? (
+                <>
+                  <span>
+                    LINE <strong>{lineNotificationReady ? '済' : '未'}</strong>
+                  </span>
+                  <span>
+                    Push <strong>{pushNotificationReady ? '済' : '未'}</strong>
+                  </span>
+                  <span>
+                    対象 <strong>{reminderTargetCount}</strong>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    冷蔵 <strong>{fridgeCount}</strong>
+                  </span>
+                  <span>
+                    冷凍 <strong>{freezerCount}</strong>
+                  </span>
+                  <span>
+                    残量少 <strong>{lowStockCount}</strong>
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <div className={`focus-orbit ${firstAttention ? `is-${firstAttention.status}` : 'is-ok'}`}>
@@ -2195,14 +2252,46 @@ function App() {
             </div>
           </div>
           <div className="focus-cta-group">
-            <button className="focus-primary-action" type="button" onClick={() => switchView(nextActionView)}>
-              {nextActionLabel}
+            <button
+              className="focus-primary-action"
+              type="button"
+              onClick={notificationSetupNeeded ? openNotificationSetup : () => switchView(nextActionView)}
+            >
+              {primaryActionLabel}
             </button>
             <button className="focus-secondary-action" type="button" onClick={() => switchView(secondaryActionView)}>
               {secondaryActionLabel}
             </button>
           </div>
         </div>
+        {notificationSetupNeeded ? (
+          <section className="notification-setup-panel" aria-label="通知の初期設定">
+            <div>
+              <span>最初にここだけ</span>
+              <strong>期限に気づく準備</strong>
+            </div>
+            <ul>
+              <li className={lineNotificationReady ? 'is-done' : ''}>
+                <MessageCircle aria-hidden="true" size={15} />
+                <span>LINE</span>
+                <strong>{lineNotificationReady ? '連携済み' : 'コード発行'}</strong>
+              </li>
+              <li className={pushNotificationReady ? 'is-done' : ''}>
+                <Cloud aria-hidden="true" size={15} />
+                <span>Push</span>
+                <strong>{pushNotificationReady ? '登録済み' : '未登録'}</strong>
+              </li>
+              <li className={reminderSettings.enabled ? 'is-done' : ''}>
+                <Bell aria-hidden="true" size={15} />
+                <span>時刻</span>
+                <strong>{reminderSettings.dailyTime}</strong>
+              </li>
+            </ul>
+            <button type="button" onClick={openNotificationSetup}>
+              通知設定を開く
+            </button>
+          </section>
+        ) : null}
         <nav className="focus-actions" aria-label="主な操作">
           <button
             aria-current={activeView === 'today' ? 'page' : undefined}
@@ -2888,7 +2977,7 @@ function App() {
           </div>
           </section>
 
-          <section className="rail-section">
+          <section className="rail-section" id="notification-settings">
           <div className="section-heading">
             <Settings size={20} />
             <div>

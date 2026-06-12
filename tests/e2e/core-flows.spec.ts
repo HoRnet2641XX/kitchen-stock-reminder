@@ -38,3 +38,12 @@ test('在庫画面で通知設定を開ける', async ({ page }) => {
   await expect(drawer.getByText('LINE通知', { exact: true })).toBeVisible()
   await expect(drawer.getByRole('button', { name: 'コード発行' })).toBeVisible()
 })
+
+test('初回の通知設定CTAから通知設定へ進める', async ({ page }) => {
+  await page.getByRole('button', { name: '通知を設定' }).click()
+
+  const drawer = page.locator('details.support-drawer')
+  await expect(drawer).toHaveAttribute('open', '')
+  await expect(page.locator('#notification-settings')).toBeVisible()
+  await expect(drawer.getByText('LINE通知', { exact: true })).toBeVisible()
+})
