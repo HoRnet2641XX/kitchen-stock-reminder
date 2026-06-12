@@ -6814,3 +6814,31 @@ body::before {
 .reminder-status .push-unblock-guide li {
   align-items: start;
 }
+
+.pwa-guide-list {
+  display: grid;
+  gap: 6px;
+}
+
+.pwa-guide-list p {
+  align-items: start;
+  background: oklch(99.2% 0.006 101);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 9px;
+}
+
+.pwa-guide-list strong {
+  color: oklch(30% 0.031 76);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.pwa-guide-list span {
+  color: oklch(44% 0.025 84);
+  font-size: 12px;
+  line-height: 1.55;
+}

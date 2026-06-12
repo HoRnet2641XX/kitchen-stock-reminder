@@ -47,3 +47,19 @@ test('初回の通知設定CTAから通知設定へ進める', async ({ page }) 
   await expect(page.locator('#notification-settings')).toBeVisible()
   await expect(drawer.getByText('LINE通知', { exact: true })).toBeVisible()
 })
+
+test('ツアーモーダルからPWA案内へ進める', async ({ page }) => {
+  await page.getByLabel('使い方ツアーを開く').click()
+
+  await expect(page.getByRole('button', { name: /PWA/ })).toBeVisible()
+  await page.getByRole('button', { name: /PWA/ }).click()
+  await expect(page.getByRole('heading', { name: 'スマホのホーム画面から開く' })).toBeVisible()
+  await expect(page.getByText('ホーム画面追加・全画面表示・通知')).toBeVisible()
+
+  await page.getByRole('button', { name: 'PWA案内へ移動' }).click()
+
+  const drawer = page.locator('details.support-drawer')
+  await expect(drawer).toHaveAttribute('open', '')
+  await expect(page.locator('#pwa-guide')).toBeVisible()
+  await expect(drawer.getByRole('heading', { name: 'ホーム画面に追加' })).toBeVisible()
+})

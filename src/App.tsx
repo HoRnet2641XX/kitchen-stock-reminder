@@ -304,11 +304,22 @@ const tourSteps = [
     body: '期限2日前や今日までの食材に気づけるよう、LINE通知とブラウザPushを先に設定します。',
   },
   {
+    actionLabel: 'PWA案内へ移動',
+    icon: Share2,
+    label: 'PWA',
+    preview: 'ホーム画面追加・全画面表示・通知',
+    step: '2',
+    target: '#pwa-guide',
+    title: 'スマホのホーム画面から開く',
+    view: 'inventory' as AppView,
+    body: 'SafariやChromeの共有メニューからホーム画面に追加すると、アプリのように開けます。買い物前や料理前にすぐ確認できます。',
+  },
+  {
     actionLabel: '確認へ移動',
     icon: AlertTriangle,
     label: '確認',
     preview: '期限超過・今日まで・残量少',
-    step: '2',
+    step: '3',
     target: '#today-check',
     title: '期限が近い食材を見る',
     view: 'today' as AppView,
@@ -319,7 +330,7 @@ const tourSteps = [
     icon: ShoppingBasket,
     label: '買い物',
     preview: '不足・使い切り・残量少',
-    step: '3',
+    step: '4',
     target: '#shopping-list',
     title: '足りない食材を買い物へ',
     view: 'shopping' as AppView,
@@ -330,7 +341,7 @@ const tourSteps = [
     icon: PackagePlus,
     label: '登録',
     preview: '食材名・保存場所・包装期限',
-    step: '4',
+    step: '5',
     target: '#add-food',
     title: '買った食材を登録する',
     view: 'add' as AppView,
@@ -341,7 +352,7 @@ const tourSteps = [
     icon: ClipboardList,
     label: '在庫',
     preview: '保存場所・残量・使い切り',
-    step: '5',
+    step: '6',
     target: '#inventory-list',
     title: '残量と保存場所を更新する',
     view: 'inventory' as AppView,
@@ -1437,14 +1448,18 @@ function App() {
     window.history.replaceState(null, '', viewHash[view])
   }
 
-  function openNotificationSetup() {
+  function openSupportDrawerTarget(targetSelector: string) {
     switchView('inventory')
     window.setTimeout(() => {
       const drawer = document.querySelector<HTMLDetailsElement>('.support-drawer')
       if (drawer) drawer.open = true
-      const target = document.querySelector<HTMLElement>('#notification-settings')
+      const target = document.querySelector<HTMLElement>(targetSelector)
       target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 80)
+  }
+
+  function openNotificationSetup() {
+    openSupportDrawerTarget('#notification-settings')
   }
 
   function openTour() {
@@ -1471,9 +1486,9 @@ function App() {
   }
 
   function goToTourTarget() {
-    if (tourStepData.target === '#notification-settings') {
+    if (tourStepData.target === '#notification-settings' || tourStepData.target === '#pwa-guide') {
       closeTour()
-      openNotificationSetup()
+      openSupportDrawerTarget(tourStepData.target)
       return
     }
     switchView(tourStepData.view)
@@ -3123,6 +3138,27 @@ function App() {
               </label>
             </details>
           </div>
+          </section>
+
+          <section className="rail-section pwa-guide" id="pwa-guide">
+          <div className="section-heading">
+            <Share2 size={20} />
+            <div>
+              <p>PWA</p>
+              <h2>ホーム画面に追加</h2>
+            </div>
+          </div>
+          <div className="pwa-guide-list">
+            <p>
+              <strong>iPhone</strong>
+              <span>Safariの共有から「ホーム画面に追加」</span>
+            </p>
+            <p>
+              <strong>Android</strong>
+              <span>Chromeのメニューから「アプリをインストール」</span>
+            </p>
+          </div>
+          <p className="safety-note">追加後はアプリのように開けます。通知は別途、ブラウザの許可とPush登録が必要です。</p>
           </section>
 
           <section className="rail-section">
