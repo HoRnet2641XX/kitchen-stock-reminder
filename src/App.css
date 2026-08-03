@@ -7295,3 +7295,525 @@ body::before {
     grid-template-columns: 1fr;
   }
 }
+
+/* Reduced-information UX pass: fewer first-screen blocks, clearer next action. */
+:root {
+  --quiet-paper: oklch(99.1% 0.007 101);
+  --quiet-paper-soft: oklch(97.7% 0.016 101);
+  --quiet-line: oklch(88% 0.016 101);
+  --quiet-line-soft: oklch(92% 0.012 101);
+  --quiet-text: oklch(30% 0.03 76);
+  --quiet-muted: oklch(45% 0.025 84);
+  --quiet-leaf: oklch(39% 0.064 149);
+  --quiet-leaf-soft: oklch(94.6% 0.034 134);
+  --quiet-warn: oklch(57% 0.072 68);
+}
+
+.app-shell {
+  background:
+    linear-gradient(180deg, oklch(98.6% 0.018 103), oklch(96.2% 0.025 105)),
+    var(--bg);
+  color: var(--quiet-text);
+}
+
+.app-header {
+  background: oklch(99.1% 0.006 101 / 0.94);
+  border-color: var(--quiet-line);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px oklch(38% 0.028 90 / 0.055);
+  margin-bottom: 8px;
+}
+
+.brand-subtitle {
+  display: none;
+}
+
+.brand-block h1 {
+  font-size: 17px;
+}
+
+.brand-block p,
+.cloud-sync-pill {
+  font-size: 11px;
+}
+
+.daily-focus {
+  margin-bottom: 8px;
+}
+
+.focus-summary {
+  background: var(--quiet-paper);
+  border: 1px solid var(--quiet-line);
+  border-radius: 12px;
+  box-shadow: none;
+  gap: 9px;
+  padding: 12px;
+}
+
+.focus-copy {
+  gap: 4px;
+}
+
+.focus-kicker {
+  color: var(--quiet-leaf);
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.focus-summary h2 {
+  color: var(--quiet-text);
+  font-size: 18px;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.focus-summary span {
+  color: var(--quiet-muted);
+  line-height: 1.55;
+}
+
+.daily-routine {
+  background: var(--quiet-paper-soft);
+  border: 1px solid var(--quiet-line-soft);
+  border-radius: 10px;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.routine-step {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 7px 8px;
+}
+
+.routine-step + .routine-step {
+  border-left: 1px solid var(--quiet-line-soft);
+}
+
+.routine-step span {
+  color: var(--quiet-muted);
+  font-size: 10px;
+}
+
+.routine-step strong {
+  color: var(--quiet-text);
+  font-size: 14px;
+}
+
+.routine-step small {
+  display: none;
+}
+
+.routine-step.needs-action {
+  background: oklch(96.8% 0.038 92);
+}
+
+.routine-step.is-done {
+  background: var(--quiet-leaf-soft);
+}
+
+.focus-cta-group {
+  gap: 6px;
+  grid-template-columns: 1fr;
+}
+
+.focus-primary-action {
+  min-height: 40px;
+}
+
+.focus-secondary-action {
+  display: none;
+}
+
+.today-next-card {
+  display: none;
+}
+
+.entry-panel,
+.today-card,
+.rail-section,
+.inventory-area,
+.support-drawer {
+  background: var(--quiet-paper);
+  border-color: var(--quiet-line);
+  border-radius: 12px;
+  padding: 11px;
+}
+
+.section-heading > svg {
+  background: var(--quiet-leaf-soft);
+  border: 1px solid oklch(83% 0.038 134);
+  border-radius: 9px;
+}
+
+.section-heading p {
+  color: var(--quiet-muted);
+  font-size: 10px;
+}
+
+.section-heading h2 {
+  color: var(--quiet-text);
+  font-size: 16px;
+}
+
+.field span,
+.storage-picker legend {
+  color: var(--quiet-text);
+}
+
+.input-with-action {
+  gap: 7px;
+}
+
+.input-with-action button {
+  min-height: 40px;
+}
+
+.deadline-preview {
+  background: oklch(97% 0.04 94);
+  border-color: oklch(86% 0.055 90);
+}
+
+.deadline-preview small {
+  display: none;
+}
+
+.research-strip {
+  background: oklch(98.5% 0.012 101);
+}
+
+.inventory-area {
+  gap: 8px;
+}
+
+.list-toolbar {
+  gap: 7px;
+}
+
+.search-box {
+  min-height: 40px;
+}
+
+.filter-tabs {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.filter-tabs button {
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: 11px;
+  min-height: 34px;
+  padding-inline: 2px;
+}
+
+.filter-tabs button.is-selected {
+  background: transparent;
+  border-bottom-color: var(--quiet-leaf);
+  box-shadow: none;
+  color: var(--quiet-leaf);
+}
+
+.inventory-list {
+  background: transparent;
+  border: 0;
+  gap: 0;
+}
+
+.inventory-row {
+  padding: 11px 0;
+}
+
+.inventory-area .item-summary-line {
+  grid-template-columns: minmax(0, 1fr) 96px;
+}
+
+.inventory-area .item-deadline {
+  box-sizing: border-box;
+  justify-items: end;
+  min-height: 44px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 7px 8px;
+  width: 96px;
+}
+
+.item-main h3 {
+  font-size: 16px;
+}
+
+.status-dot {
+  color: var(--quiet-muted);
+  font-size: 10px;
+}
+
+.inventory-area .item-quick-facts {
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.inventory-area .item-quick-facts span {
+  background: transparent;
+  border: 1px solid var(--quiet-line-soft);
+  border-radius: 999px;
+  color: var(--quiet-muted);
+  padding: 2px 7px;
+}
+
+.item-life-strip {
+  height: 3px;
+}
+
+.item-deadline {
+  background: oklch(98.2% 0.017 96);
+  border-color: oklch(87% 0.04 92);
+}
+
+.item-deadline strong {
+  color: var(--quiet-warn);
+  font-size: 14px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.item-deadline span {
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.item-manage summary {
+  min-height: 28px;
+}
+
+.item-manage summary::after {
+  color: var(--quiet-muted);
+  content: '開く';
+  font-size: 11px;
+}
+
+.item-manage[open] summary::after {
+  content: '閉じる';
+}
+
+.shopping-row {
+  background: transparent;
+  border-radius: 0;
+  border-width: 0 0 1px;
+  padding: 2px 0;
+}
+
+.shopping-row:last-child {
+  border-bottom: 0;
+}
+
+.support-drawer > summary {
+  min-height: 38px;
+}
+
+.focus-actions {
+  border-radius: 14px;
+  padding: 5px;
+}
+
+.focus-actions button {
+  border-radius: 10px;
+  min-height: 50px;
+}
+
+.focus-actions button.is-current {
+  background: var(--quiet-leaf-soft);
+  box-shadow: inset 0 0 0 1px oklch(80% 0.046 135);
+}
+
+@media (max-width: 360px) {
+  .daily-routine {
+    grid-template-columns: 1fr;
+  }
+
+  .routine-step + .routine-step {
+    border-left: 0;
+    border-top: 1px solid var(--quiet-line-soft);
+  }
+
+  .filter-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .inventory-area .item-summary-line {
+    grid-template-columns: minmax(0, 1fr) 92px;
+  }
+
+  .inventory-area .item-deadline {
+    padding-inline: 6px;
+    width: 92px;
+  }
+
+  .item-deadline strong {
+    font-size: 13px;
+  }
+}
+
+/* Skill polish pass: preserve the app, remove accidental UI heaviness. */
+.app-shell {
+  padding-inline: 12px;
+}
+
+.app-header {
+  box-shadow: none;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.brand-mark {
+  border-radius: 10px;
+  height: 38px;
+  width: 38px;
+}
+
+.brand-bowl-icon {
+  height: 28px;
+  width: 28px;
+}
+
+.brand-block h1 {
+  font-size: 18px;
+  line-height: 1.22;
+}
+
+.header-actions .ghost-button {
+  min-height: 34px;
+  width: 34px;
+}
+
+.focus-summary,
+.entry-panel,
+.today-card,
+.rail-section,
+.inventory-area,
+.support-drawer {
+  box-shadow: none;
+}
+
+.focus-summary {
+  padding: 11px;
+}
+
+.focus-summary h2 {
+  font-size: 19px;
+}
+
+.daily-routine {
+  border-radius: 8px;
+}
+
+.routine-step {
+  min-height: 42px;
+  padding-block: 6px;
+}
+
+.focus-primary-action {
+  min-height: 38px;
+}
+
+.shopping-row {
+  align-items: center;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 36px 36px;
+  padding-block: 7px;
+}
+
+.shopping-row > button:first-child {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.shopping-row > button:first-child span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shopping-row button[aria-label] {
+  min-height: 36px;
+  width: 36px;
+}
+
+.inventory-area .item-summary-line {
+  gap: 11px;
+}
+
+.inventory-area .item-deadline {
+  background: oklch(99% 0.01 96);
+  border-color: oklch(84% 0.035 88);
+  border-radius: 9px;
+}
+
+.item-deadline strong {
+  color: oklch(45% 0.066 66);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.item-deadline span {
+  color: oklch(42% 0.022 82);
+  font-variant-numeric: tabular-nums;
+}
+
+.item-life-strip {
+  max-width: min(100%, 238px);
+}
+
+.focus-actions {
+  border-color: oklch(86% 0.018 101);
+  border-radius: 16px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  box-shadow: 0 10px 24px oklch(32% 0.026 84 / 0.13);
+  padding: 4px;
+}
+
+.focus-actions button {
+  gap: 2px;
+  min-height: 46px;
+}
+
+.focus-actions svg {
+  height: 17px;
+  width: 17px;
+}
+
+.focus-actions span {
+  font-size: 10px;
+}
+
+.focus-actions strong {
+  font-size: 10px;
+}
+
+@media (max-width: 360px) {
+  .app-header {
+    padding-inline: 10px;
+  }
+
+  .brand-block h1 {
+    font-size: 16px;
+  }
+
+  .header-actions .ghost-button {
+    min-height: 32px;
+    width: 32px;
+  }
+
+  .shopping-row {
+    grid-template-columns: minmax(0, 1fr) 34px 34px;
+  }
+}

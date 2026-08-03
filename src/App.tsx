@@ -33,7 +33,6 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react'
-import './App.css'
 import {
   findFoodGuide,
   foodGuides,
@@ -44,6 +43,9 @@ import {
   type ReferenceSource,
   type StoragePlace,
 } from './data/foodGuides'
+import { LandingPage } from './LandingPage'
+import './App.css'
+import './LandingPage.css'
 
 type ExpiryType = 'useBy' | 'bestBefore' | 'unknown'
 type InventoryFilter = 'active' | StoragePlace | 'used' | 'low'
@@ -993,7 +995,7 @@ function buildShareText(insights: ItemInsight[], shoppingItems: ShoppingItem[]) 
   return lines.join('\n')
 }
 
-function App() {
+function KitchenApp() {
   const [items, setItems] = useState<InventoryItem[]>(readInventory)
   const [draft, setDraft] = useState<DraftItem>(() => createDraft())
   const [filter, setFilter] = useState<InventoryFilter>('active')
@@ -1333,17 +1335,17 @@ function App() {
     (reminderSettings.enabled ? 1 : 0) +
     1
   const setupReadyLabel = `${setupReadyCount}/4`
-  const focusKicker = notificationSetupNeeded ? '初回の3分' : '今日の台所'
+  const focusKicker = notificationSetupNeeded ? '初回設定' : '今日の確認'
   const focusTitle = notificationSetupNeeded
-    ? '期限通知を先に整える'
+    ? '通知を先に整える'
     : firstAttention
-      ? `${firstAttention.item.name}から使う`
-      : '買ったら、しまう前に登録'
+      ? `${firstAttention.item.name}を確認`
+      : '期限が近い食材はありません'
   const focusSubtext = notificationSetupNeeded
-    ? 'LINEとスマホ通知を済ませると、期限2日前と当日に見落としを防げます。'
+    ? 'LINEとスマホ通知を済ませると、期限2日前と当日に知らせます。'
     : firstAttention
-      ? `${formatDaysLeft(firstAttention.daysLeft)}。使う、確認する、買い足すをここで判断します。`
-      : '冷蔵・冷凍・常温の保存目安を見ながら、食材を一つずつ残します。'
+      ? `${formatDaysLeft(firstAttention.daysLeft)}。使うか、買い足すかを決めます。`
+      : '買った食材を登録して、次の期限だけ見ます。'
   const primaryActionLabel = notificationSetupNeeded ? '通知を整える' : nextActionLabel
   const nextKitchenActionTitle = notificationSetupNeeded
     ? '通知とホーム画面を整える'
@@ -2591,49 +2593,51 @@ function App() {
             </div>
           </details>
 
-          <div className="research-strip" aria-label="期限リサーチ">
-            <div>
-              <Database size={17} />
-              <span>{selectedGuide ? `${selectedGuide.name} の調査済み保存目安` : researchMessage}</span>
-            </div>
-            <div>
-              {(Object.keys(storageMeta) as StoragePlace[]).map((storage) => {
-                const duration = selectedGuide?.storage[storage]
-                return (
-                  <span className="research-pill" key={storage}>
-                    {storageMeta[storage].label}: {duration?.label ?? 'なし'}
-                  </span>
-                )
-              })}
-            </div>
-            <div className="research-source">
-              <span>{draftSourceSummary.label}</span>
-              <small>
-                {draftSourceSummary.checked ? `${draftSourceSummary.checked} 確認` : '食材名を入れると参照元を表示'}
-              </small>
-            </div>
-            {liveResearch ? (
-              <div className="live-research-result">
-                <strong>
-                  実リサーチ {liveResearch.confidence === 'medium' ? '関連あり' : '要確認'}
-                </strong>
-                <span>{liveResearch.summary}</span>
-                <div>
-                  {liveResearch.sources.slice(0, 3).map((source) => (
-                    <a href={source.url} key={source.url} rel="noreferrer" target="_blank">
-                      {source.publisher}
-                      <small>{source.ok ? `${source.status}` : source.error ?? 'error'}</small>
-                    </a>
-                  ))}
-                </div>
-                {liveResearch.productCandidates.length > 0 ? (
-                  <small>
-                    商品候補: {liveResearch.productCandidates.map((candidate) => candidate.name).filter(Boolean).join('、')}
-                  </small>
-                ) : null}
+          {selectedGuide || liveResearch ? (
+            <div className="research-strip" aria-label="期限リサーチ">
+              <div>
+                <Database size={17} />
+                <span>{selectedGuide ? `${selectedGuide.name} の保存目安` : researchMessage}</span>
               </div>
-            ) : null}
-          </div>
+              <div>
+                {(Object.keys(storageMeta) as StoragePlace[]).map((storage) => {
+                  const duration = selectedGuide?.storage[storage]
+                  return (
+                    <span className="research-pill" key={storage}>
+                      {storageMeta[storage].label}: {duration?.label ?? 'なし'}
+                    </span>
+                  )
+                })}
+              </div>
+              <div className="research-source">
+                <span>{draftSourceSummary.label}</span>
+                <small>
+                  {draftSourceSummary.checked ? `${draftSourceSummary.checked} 確認` : '食材名を入れると参照元を表示'}
+                </small>
+              </div>
+              {liveResearch ? (
+                <div className="live-research-result">
+                  <strong>
+                    実リサーチ {liveResearch.confidence === 'medium' ? '関連あり' : '要確認'}
+                  </strong>
+                  <span>{liveResearch.summary}</span>
+                  <div>
+                    {liveResearch.sources.slice(0, 3).map((source) => (
+                      <a href={source.url} key={source.url} rel="noreferrer" target="_blank">
+                        {source.publisher}
+                        <small>{source.ok ? `${source.status}` : source.error ?? 'error'}</small>
+                      </a>
+                    ))}
+                  </div>
+                  {liveResearch.productCandidates.length > 0 ? (
+                    <small>
+                      商品候補: {liveResearch.productCandidates.map((candidate) => candidate.name).filter(Boolean).join('、')}
+                    </small>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="form-actions">
             <button className="primary-button" type="submit">
@@ -2731,7 +2735,6 @@ function App() {
                   <div className={item.checked ? 'shopping-row is-checked' : 'shopping-row'} key={item.name}>
                     <button type="button" onClick={() => toggleShoppingItem(item.name)}>
                       <span>{item.name}</span>
-                      <small>{item.source === 'manual' ? '手動' : '自動'}</small>
                     </button>
                     <button aria-label={`${item.name}を削除`} type="button" onClick={() => removeShoppingItem(item.name)}>
                       <Trash2 size={15} />
@@ -2823,7 +2826,6 @@ function App() {
                         <div className="item-quick-facts" aria-label={`${insight.item.name}の保存情報`}>
                           <span>{insight.item.quantity}</span>
                           <span>{meta.label}</span>
-                          <span>{insight.item.customLocation ?? meta.defaultLocation}</span>
                           <span>残量{insight.item.remainingPercent ?? 100}%</span>
                         </div>
                         <div className={`item-life-strip ${status.className}`} aria-label={`期限の近さ ${formatDaysLeft(insight.daysLeft)}`}>
@@ -3398,6 +3400,16 @@ function App() {
       ) : null}
     </main>
   )
+}
+
+function App() {
+  const isLandingRoute = window.location.pathname === '/' && window.location.hash === ''
+
+  if (isLandingRoute) {
+    return <LandingPage />
+  }
+
+  return <KitchenApp />
 }
 
 export default App
